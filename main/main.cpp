@@ -3,6 +3,7 @@
 #include <string>
 #include <limits> // For std::numeric_limits
 #include "../constants/topics.h" // Relative path to topics.h
+#include "../topics_objects/topics_objects.h" // Relative path to topics_objects.h
 
 /**
  * @brief Prints the list of topics with their corresponding indices.
@@ -39,8 +40,23 @@ void main_menu(const std::vector<std::string>& topics) {
         }
         // Check if the number is within the valid range of topics
         else if (topic_number >= 1 && topic_number <= topics.size()) {
-            // Display the selected topic
-            std::cout << topic_number << ". " << topics[topic_number - 1] << std::endl;
+            // Create topic object
+            Topic* topic_selected = new Topic(topics[topic_number - 1], topic_number, "DEFAULT, TO DO");
+            // Display the topic details
+            std::cout << "Topic ID: " << topic_selected->getId() << std::endl;
+            std::cout << "Name: " << topic_selected->getName() << std::endl;
+            //Delete object after usage
+            delete topic_selected; // Automatically calls the destructor
+
+            // Create sub_topic object
+            SubTopic* sub_topic_selected = new SubTopic(topics[topic_number - 1], topic_number, "DEFAULT, TO DO", "Example subtopic name", "Example subtopic description", topic_number + 10);
+            // Display the topic details
+            std::cout << "SubTopic ID: " << sub_topic_selected->getSubId() << std::endl;
+            std::cout << "Name: " << sub_topic_selected->getSubName() << std::endl;
+            std::cout << "Description: " << sub_topic_selected->getSubDescription() << std::endl;
+            //Delete object after usage
+            delete sub_topic_selected; // Automatically calls the destructor
+
             break;
         } 
         else {
@@ -58,6 +74,7 @@ void main_menu(const std::vector<std::string>& topics) {
  * @return int Returns 0 upon successful execution.
  */
 int main() {
+
 
     // Call the main menu with the list of topics
     main_menu(topics);
