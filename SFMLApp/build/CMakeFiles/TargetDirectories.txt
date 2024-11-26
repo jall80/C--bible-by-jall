@@ -1,0 +1,3 @@
+C:/Users/Admin/Documents/programacion/Cpp/SFMLApp/build/CMakeFiles/SFMLApp.dir
+C:/Users/Admin/Documents/programacion/Cpp/SFMLApp/build/CMakeFiles/edit_cache.dir
+C:/Users/Admin/Documents/programacion/Cpp/SFMLApp/build/CMakeFiles/rebuild_cache.dir
