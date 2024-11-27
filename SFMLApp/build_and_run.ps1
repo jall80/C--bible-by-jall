@@ -1,7 +1,11 @@
-# Remove the "build" directory if it exists
-Write-Host "Removing 'build' directory if it exists..."
-Remove-Item -Path "build" -Recurse -Force
-Write-Host "'build' directory removed if it existed."
+# Check if the "build" directory exists
+if (Test-Path -Path "build") {
+    Write-Host "Directory 'build' exists. Removing it..."
+    Remove-Item -Path "build" -Recurse -Force
+    Write-Host "'build' directory removed."
+} else {
+    Write-Host "'build' directory does not exist. No action needed."
+}
 
 # Get the current working directory (equivalent to pwd in Bash)
 $currentDir = Get-Location

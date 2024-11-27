@@ -4,7 +4,7 @@
 
 int main() {
     // Create a window
-    sf::RenderWindow window(sf::VideoMode(1024, 1024), "SFML GUI + Audio");
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "SFML GUI + Audio");
 
     // Load a music file
     sf::Music music;
@@ -32,7 +32,7 @@ int main() {
     // Adjust the text position to the center of the window
     sf::FloatRect textBounds = text.getLocalBounds();
     text.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2); // Center the text
-    text.setPosition(1024 / 2, 1024 / 2); // Center of the window
+    text.setPosition(1920 / 2, 1080 / 2); // Center of the window
 
     // Load the background image
     sf::Texture backgroundTexture;
@@ -45,7 +45,7 @@ int main() {
     // Create a button in the upper-right corner
     sf::RectangleShape button(sf::Vector2f(100, 25)); // Width: 100, Height: 50
     button.setFillColor(sf::Color(128, 128, 128)); // Gray button
-    button.setPosition(1024 - 110, 10); // 10 pixels margin from the top-right corner
+    button.setPosition(1920 - 110, 10); // 10 pixels margin from the top-right corner
 
     // Create text for the button
     sf::Text buttonText("Music ON/OFF", font, 15);
