@@ -4,7 +4,7 @@
 
 int main() {
     // Create a window
-    sf::RenderWindow window(sf::VideoMode(1280, 720), "SFML GUI + Audio");
+    sf::RenderWindow window(sf::VideoMode(1024, 1024), "SFML GUI + Audio");
 
     // Load a music file
     sf::Music music;
@@ -22,24 +22,39 @@ int main() {
         return -1;
     }
 
+    // Define the "computer green" color
+    sf::Color computerGreen(51, 204, 51);
+
+    // Create the text
     sf::Text text("Press ESC to exit :P", font, 30);
-    text.setFillColor(sf::Color::White);
+    text.setFillColor(computerGreen);
 
     // Adjust the text position to the center of the window
     sf::FloatRect textBounds = text.getLocalBounds();
     text.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2); // Center the text
-    text.setPosition(1280 / 2, 720 / 2); // Center of the window
+    text.setPosition(1024 / 2, 1024 / 2); // Center of the window
 
-    // Create a white border with a thickness of 50 pixels
-    float outlineThickness = 50.f;
-    sf::RectangleShape border(sf::Vector2f(
-        1280 - 2 * outlineThickness, // Width reduced by the thickness
-        720 - 2 * outlineThickness  // Height reduced by the thickness
-    ));
-    border.setFillColor(sf::Color::Transparent);       // No fill
-    border.setOutlineThickness(outlineThickness);      // Border thickness
-    border.setOutlineColor(sf::Color::White);          // Border color
-    border.setPosition(outlineThickness, outlineThickness); // Center the border inside the window
+    // Load the background image
+    sf::Texture backgroundTexture;
+    if (!backgroundTexture.loadFromFile("images/retroScreen.png")) { // Ensure you use the correct path to your PNG
+        std::cerr << "Error loading the background image." << std::endl;
+        return -1;
+    }
+    sf::Sprite backgroundSprite(backgroundTexture);
+
+    // Create a button in the upper-right corner
+    sf::RectangleShape button(sf::Vector2f(100, 25)); // Width: 100, Height: 50
+    button.setFillColor(sf::Color(128, 128, 128)); // Gray button
+    button.setPosition(1024 - 110, 10); // 10 pixels margin from the top-right corner
+
+    // Create text for the button
+    sf::Text buttonText("Music ON/OFF", font, 15);
+    buttonText.setFillColor(sf::Color(0, 0, 0)); // Black text
+    sf::FloatRect buttonTextBounds = buttonText.getLocalBounds();
+    buttonText.setOrigin(buttonTextBounds.left + buttonTextBounds.width / 2, buttonTextBounds.top + buttonTextBounds.height / 2);
+    buttonText.setPosition(button.getPosition().x + button.getSize().x / 2, button.getPosition().y + button.getSize().y / 2);
+
+    bool isMusicPlaying = true; // Track music state
 
     // Main window loop
     while (window.isOpen()) {
@@ -49,12 +64,36 @@ int main() {
                 (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)) {
                 window.close();
             }
+
+            // Handle mouse click on the button
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                if (button.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+                    if (isMusicPlaying) {
+                        music.pause();
+                        isMusicPlaying = false;
+                    } else {
+                        music.play();
+                        isMusicPlaying = true;
+                    }
+                }
+            }
+        }
+
+        // Change button color on hover
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+        if (button.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+            button.setFillColor(sf::Color(180, 180, 180)); // Lighter gray when hovered
+        } else {
+            button.setFillColor(sf::Color(128, 128, 128)); // Default gray button
         }
 
         // Draw elements
         window.clear();
-        window.draw(border); // Draw the white border
-        window.draw(text);   // Draw the centered text
+        window.draw(backgroundSprite); // Draw the background image
+        window.draw(text);
+        window.draw(button);
+        window.draw(buttonText);
         window.display();
     }
 

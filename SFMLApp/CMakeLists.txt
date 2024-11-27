@@ -14,6 +14,7 @@ set(SFML_LIB_DIR "${SFML_DIR}/lib")
 set(SFML_BIN_DIR "${SFML_DIR}/bin")
 set(FONTS_DIR "${CMAKE_SOURCE_DIR}/fonts")
 set(AUDIOS_DIR "${CMAKE_SOURCE_DIR}/audios")
+set(IMAGES_DIR "${CMAKE_SOURCE_DIR}/images")
 
 # Include necessary directories
 include_directories(${SFML_INCLUDE_DIR})
@@ -42,3 +43,8 @@ add_custom_command(TARGET SFMLApp POST_BUILD
 add_custom_command(TARGET SFMLApp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${FONTS_DIR} $<TARGET_FILE_DIR:SFMLApp>/fonts)
+
+# Copy fonts to the output directory
+add_custom_command(TARGET SFMLApp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${IMAGES_DIR} $<TARGET_FILE_DIR:SFMLApp>/images)
