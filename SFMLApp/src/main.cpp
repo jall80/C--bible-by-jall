@@ -165,11 +165,10 @@ int main() {
 
     // Create PrintObject objects
     PrintObject* background = new PrintObject("Background Image", 1920, 1080, 0, 0);
-    if (!background->loadTexture(IMAGES_PATH + "greenCircuit.png")) {
+    if (!background->loadTexture(IMAGES_PATH + "realCRT.jpeg")) {
         return -1; // Exit if texture loading fails
     }
-    PrintObject* textObj = new PrintObject("WelcomeText", 1920 / 2, 1080 / 2, {51, 204, 51}, "OLA K HACE?", FONTS_PATH + "ARIAL.ttf", 30);
-    PrintObject* textObj2 = new PrintObject("ResponseText", 1920 / 2 + 200, 1080 / 2 + 200, {51, 204, 51}, "NADA Y UD?", FONTS_PATH + "ARIAL.ttf", 30);
+    PrintObject* textObj = new PrintObject("WelcomeText", 400, 20, {0, 255, 128}, "OLA K HACE? 12345679 XXX", FONTS_PATH + "retro_computer.ttf", 30);
 
     // Main window loop
     while (window.isOpen()) {
@@ -190,14 +189,12 @@ int main() {
         window.clear();
         background->draw(window);
         textObj->draw(window);
-        textObj2->draw(window);
         window.draw(soundButton); // Draw button
         window.display();
     }
 
     delete background;
     delete textObj;
-    delete textObj2;
 
     return 0;
 }
