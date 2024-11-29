@@ -3,11 +3,22 @@
 #include <iostream>
 #include <string>
 #include <array>
+#include <memory>
+#include <filesystem> // For filesystem operations
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
 const std::string FONTS_PATH = "fonts/";
 const std::string ICONS_PATH = "images/icons/";
+
+const std::string WINDOW_TITLE = "C++ Bible by JALL";
+const std::string BACKGROUND_IMAGE_OBJ = "BackgroundImage";
+const std::string BACKGROUND_IMAGE_FILE = "realCRT.jpeg";
+const std::string SOUND_ON_OBJ = "soundON";
+const std::string SOUND_ON_FILE = "soundON.png";
+const std::string SOUND_OFF_OBJ = "soundOFF";
+const std::string SOUND_OFF_FILE = "soundOFF.png";
+
 
 class PrintObject {
 private:
@@ -89,6 +100,23 @@ public:
         color[2] = b;
     }
 
+
+    sf::Texture& getTexture() {
+    return texture;
+    }
+
+    const sf::Texture& getTexture() const {
+        return texture;
+    }
+
+    sf::Sprite& getTextureSprite() {
+        return textureSprite;
+    }
+
+    const sf::Sprite& getTextureSprite() const {
+        return textureSprite;
+    }
+
     // Load texture for image objects
     bool loadTexture(const std::string& path) {
         if (!texture.loadFromFile(path)) {
@@ -136,39 +164,70 @@ void handleSoundButton(sf::Sprite& soundButton,
     }
 }
 
-int main() {
-    // Create a window
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "SFML GUI + Audio");
-
-    // Load button textures
-    sf::Texture soundOnTexture, soundOffTexture;
-    if (!soundOnTexture.loadFromFile(ICONS_PATH + "soundON.png") || !soundOffTexture.loadFromFile(ICONS_PATH + "soundOFF.png")) {
-        std::cerr << "Error loading button images.\n";
-        return -1;
-    }
-
-    // Create sprite for button
-    sf::Sprite soundButton;
-    soundButton.setTexture(soundOnTexture);
-    soundButton.setPosition(1920 - soundOnTexture.getSize().x - 10, 10); // Margin from top-right corner
-
-    // Load music
-    sf::Music music;
-    if (!music.openFromFile(AUDIOS_PATH + "CONFIG.mp3")) {
+// Load music
+std::shared_ptr<sf::Music> loadAndPlayMusic() {
+    auto music = std::make_shared<sf::Music>();
+    if (!music->openFromFile(AUDIOS_PATH + "MIX_MASTER_BOOT_RECORD_INTERRUPT_REQUEST_INTERNET_PROTOCOL.mp3")) {
         std::cerr << "Error loading music.\n";
-        return -1;
+        return nullptr; // Return nullptr to indicate failure
     }
-    music.play();
-    music.setLoop(true);
+    music->play();
+    music->setLoop(true);
+    return music;
+}
 
-    bool isMusicPlaying = true; // Initial sound state
+std::vector<std::shared_ptr<PrintObject>> createPrintObjects(const std::string& fontsPath) {
+    // Crear el vector de PrintObjects como shared_ptr
+    std::vector<std::shared_ptr<PrintObject>> printObjects;
+
+    // Añadir objetos al vector usando std::make_shared
+    printObjects.push_back(std::make_shared<PrintObject>("Text0", 400, 20, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(std::make_shared<PrintObject>("Text1", 400, 120, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(std::make_shared<PrintObject>("Text2", 400, 220, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(std::make_shared<PrintObject>("Text3", 400, 320, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(std::make_shared<PrintObject>("Text4", 400, 420, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(std::make_shared<PrintObject>("Text5", 400, 520, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX \n hehehe", fontsPath + "retro_computer.ttf", 30));
+
+    return printObjects;
+}
+
+
+
+void drawPrintObjects(sf::RenderWindow& window, const std::vector<std::shared_ptr<PrintObject>>& printObjects) {
+    for (const auto& obj : printObjects) {
+        obj->draw(window); // Llamar al método draw usando el puntero
+    }
+}
+
+int initAndStartMainWindowLoop(){
+
+    // Create a window
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), WINDOW_TITLE);
+
 
     // Create PrintObject objects
-    PrintObject* background = new PrintObject("Background Image", 1920, 1080, 0, 0);
-    if (!background->loadTexture(IMAGES_PATH + "realCRT.jpeg")) {
+    PrintObject* background = new PrintObject(BACKGROUND_IMAGE_OBJ, 1920, 1080, 0, 0);
+    if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) {
         return -1; // Exit if texture loading fails
     }
-    PrintObject* textObj = new PrintObject("WelcomeText", 400, 20, {0, 255, 128}, "OLA K HACE? 12345679 XXX", FONTS_PATH + "retro_computer.ttf", 30);
+
+    // Create PrintObject objects
+    PrintObject* soundON = new PrintObject(SOUND_ON_OBJ, 50, 50, 1920 - 100, 30);
+    if (!soundON->loadTexture(ICONS_PATH + SOUND_ON_FILE)) {
+        return -1; // Exit if texture loading fails
+    }
+
+    // Create PrintObject objects
+    PrintObject* soundOFF = new PrintObject(SOUND_OFF_OBJ, 50, 50, 1920 - 100, 30);
+    if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) {
+        return -1; // Exit if texture loading fails
+    }
+
+    // Create vector with text objects
+    std::vector<std::shared_ptr<PrintObject>> textObjects = createPrintObjects(FONTS_PATH);
+
+    std::shared_ptr<sf::Music> music = loadAndPlayMusic();
+    bool isMusicPlaying = true; // Initial sound state
 
     // Main window loop
     while (window.isOpen()) {
@@ -181,20 +240,29 @@ int main() {
 
             // Handle mouse clicks
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-                handleSoundButton(soundButton, soundOnTexture, soundOffTexture, music, isMusicPlaying, window);
+                handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
             }
         }
 
         // Draw elements
         window.clear();
         background->draw(window);
-        textObj->draw(window);
-        window.draw(soundButton); // Draw button
+        soundON->draw(window);
+        drawPrintObjects(window, textObjects);
         window.display();
     }
 
+    // Delete objects
     delete background;
-    delete textObj;
-
+    delete soundON;
+    delete soundOFF;
     return 0;
+}
+
+
+int main() {
+
+    return initAndStartMainWindowLoop();
+
+    //return 0;
 }
