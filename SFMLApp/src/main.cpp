@@ -18,6 +18,37 @@ const std::string SOUND_ON_OBJ = "soundON";
 const std::string SOUND_ON_FILE = "soundON.png";
 const std::string SOUND_OFF_OBJ = "soundOFF";
 const std::string SOUND_OFF_FILE = "soundOFF.png";
+const std::string CPP150_IMAGE_OBJ = "cpp150";
+const std::string CPP150_IMAGE_FILE = "cpp150.png";
+constexpr std::array<int, 3> CRTGreen{0, 255, 128};
+
+
+struct LineTextParams {
+    std::string name;
+    int x_position;
+    int y_position;
+    std::array<int, 3> color;
+    std::string text;
+    std::string fontPath;
+    int textSize;
+    bool centered;
+};
+
+LineTextParams mainMenuParams = {"mainMenu", 1920 / 2, 50, CRTGreen, "MAIN MENU", FONTS_PATH + "retro_computer.ttf", 40, true};
+
+
+std::vector<LineTextParams> topics = {
+    {"Topic1", 0, 0, CRTGreen, "1. Introduction to C++ Programming", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic2", 0, 0, CRTGreen, "2. Data Types in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic3", 0, 0, CRTGreen, "3. Control Structures in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic4", 0, 0, CRTGreen, "4. Functions and Parameters in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic5", 0, 0, CRTGreen, "5. Object-Oriented Programming Concepts", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic6", 0, 0, CRTGreen, "6. Memory Management", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic7", 0, 0, CRTGreen, "7. Standard Template Library (STL)", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic8", 0, 0, CRTGreen, "8. File Handling in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic9", 0, 0, CRTGreen, "9. Error Handling and Debugging", FONTS_PATH + "retro_computer.ttf", 30, false},
+    {"Topic10", 0, 0, CRTGreen, "10. Advanced Topics in C++", FONTS_PATH + "retro_computer.ttf", 30, false}
+};
 
 
 class PrintObject {
@@ -30,18 +61,20 @@ private:
     sf::Font font; // Font for the text
     sf::Text textObj; // SFML Text object
     bool isText; // Flag to indicate if this is a text object
+    bool centerText;
 
 public:
     // Constructor for figures
     PrintObject(const std::string& _name, int _width, int _height, int _x_position, int _y_position, std::array<int, 3> _color)
-        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color(_color), isText(false) {}
+        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color(_color), isText(false), centerText(false) {}
 
     // Constructor for images (sets default values)
     explicit PrintObject(const std::string& _name, int _width, int _height, int _x_position, int _y_position)
-        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color{255, 255, 255}, isText(false) {}
+        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color{255, 255, 255}, isText(false), centerText(false) {}
 
     // Constructor for text
-    PrintObject(const std::string& _name, int _x_position, int _y_position, std::array<int, 3> _color, const std::string& _text, const std::string& fontPath, int _text_size)
+    PrintObject(const std::string& _name, int _x_position, int _y_position, std::array<int, 3> _color, 
+                const std::string& _text, const std::string& fontPath, int _text_size, bool centerText)
         : name(_name), width(0), height(0), x_position(_x_position), y_position(_y_position), color(_color), isText(true) {
         if (!font.loadFromFile(fontPath)) {
             throw std::runtime_error("Failed to load font: " + fontPath);
@@ -50,8 +83,17 @@ public:
         textObj.setString(_text);
         textObj.setCharacterSize(_text_size);
         textObj.setFillColor(sf::Color(color[0], color[1], color[2]));
+
         sf::FloatRect textBounds = textObj.getLocalBounds();
-        textObj.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2); // Center the text
+
+        if (centerText) {
+            // Center-align the text
+            textObj.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2);
+        } else {
+            // Left-align the text
+            textObj.setOrigin(0, textBounds.top + textBounds.height / 2); // Only vertically centered
+        }
+
         textObj.setPosition(static_cast<float>(_x_position), static_cast<float>(_y_position));
     }
 
@@ -179,14 +221,33 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
 std::vector<std::shared_ptr<PrintObject>> createPrintObjects(const std::string& fontsPath) {
     // Crear el vector de PrintObjects como shared_ptr
     std::vector<std::shared_ptr<PrintObject>> printObjects;
+    int page_beggining_h = 50;
+    int page_beggining_v = 1920 / 2 - 1920 / 4;
+    int step_size = 50;
+    int next_line = 0;
 
     // Añadir objetos al vector usando std::make_shared
-    printObjects.push_back(std::make_shared<PrintObject>("Text0", 400, 20, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
-    printObjects.push_back(std::make_shared<PrintObject>("Text1", 400, 120, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
-    printObjects.push_back(std::make_shared<PrintObject>("Text2", 400, 220, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
-    printObjects.push_back(std::make_shared<PrintObject>("Text3", 400, 320, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
-    printObjects.push_back(std::make_shared<PrintObject>("Text4", 400, 420, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX", fontsPath + "retro_computer.ttf", 30));
-    printObjects.push_back(std::make_shared<PrintObject>("Text5", 400, 520, std::array<int, 3>{0, 255, 128}, "OLA K HACE? 12345679 XXX \n hehehe", fontsPath + "retro_computer.ttf", 30));
+    printObjects.push_back(
+        std::make_shared<PrintObject>(
+            mainMenuParams.name, 
+            mainMenuParams.x_position, 
+            mainMenuParams.y_position, 
+            mainMenuParams.color, 
+            mainMenuParams.text, 
+            mainMenuParams.fontPath, 
+            mainMenuParams.textSize, 
+            mainMenuParams.centered
+        )
+    );
+    next_line = mainMenuParams.y_position + 100;
+
+    for (const auto& topic : topics) {
+        printObjects.push_back(std::make_shared<PrintObject>(
+            topic.name, page_beggining_v, next_line, topic.color,
+            topic.text, topic.fontPath, topic.textSize, topic.centered
+        ));
+        next_line = next_line + step_size;
+    }
 
     return printObjects;
 }
@@ -210,6 +271,13 @@ int initAndStartMainWindowLoop(){
     if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) {
         return -1; // Exit if texture loading fails
     }
+
+    // Create PrintObject objects
+    PrintObject* cpp150 = new PrintObject(CPP150_IMAGE_OBJ, 100, 100, 200, 800);
+    if (!cpp150->loadTexture(ICONS_PATH + CPP150_IMAGE_FILE)) {
+        return -1; // Exit if texture loading fails
+    }
+
 
     // Create PrintObject objects
     PrintObject* soundON = new PrintObject(SOUND_ON_OBJ, 50, 50, 1920 - 100, 30);
@@ -247,6 +315,7 @@ int initAndStartMainWindowLoop(){
         // Draw elements
         window.clear();
         background->draw(window);
+        cpp150->draw(window);
         soundON->draw(window);
         drawPrintObjects(window, textObjects);
         window.display();
@@ -254,6 +323,7 @@ int initAndStartMainWindowLoop(){
 
     // Delete objects
     delete background;
+    delete cpp150;
     delete soundON;
     delete soundOFF;
     return 0;
