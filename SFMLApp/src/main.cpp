@@ -5,6 +5,7 @@
 #include <array>
 #include <memory>
 #include <filesystem> // For filesystem operations
+#include <cstdint>
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
@@ -20,24 +21,90 @@ const std::string SOUND_OFF_OBJ = "soundOFF";
 const std::string SOUND_OFF_FILE = "soundOFF.png";
 const std::string CPP150_IMAGE_OBJ = "cpp150";
 const std::string CPP150_IMAGE_FILE = "cpp150.png";
-constexpr std::array<int, 3> CRTGreen{0, 255, 128};
+constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
+
+//For matrix
+
+const int SCREEN_WIDTH = 1920;
+const int SCREEN_HEIGHT = 1080;
+const int BLOCK_SIZE = 15;
+
+// Calculate the number of rows and columns
+const int rows = SCREEN_HEIGHT / BLOCK_SIZE;
+const int cols = SCREEN_WIDTH / BLOCK_SIZE;
+
+// Structure to represent a block of 30x30 pixels
+struct Block {
+    int x, y; // Coordinates of the block
+    int width = BLOCK_SIZE; // Width of the block
+    int height = BLOCK_SIZE; // Height of the block
+
+    Block(int _x, int _y) : x(_x), y(_y) {}
+};
+
+// Function to create and initialize the 2D matrix with (columns, rows) order
+std::vector<std::vector<Block>> createGrid(int screenWidth, int screenHeight, int blockSize) {
+    // Calculate the number of columns and rows
+    int cols = screenWidth / blockSize;
+    int rows = screenHeight / blockSize;
+
+    // Create the 2D matrix
+    std::vector<std::vector<Block>> grid(cols, std::vector<Block>());
+
+    // Initialize the matrix with blocks
+    for (int j = 0; j < cols; ++j) {
+        for (int i = 0; i < rows; ++i) {
+            grid[j].emplace_back(j * blockSize, i * blockSize);
+        }
+    }
+
+    return grid; // Return the initialized matrix
+}
+
+
+
+struct ScreenParams {
+    uint16_t screenWidth;
+    uint16_t screenHeight;
+    uint16_t leftMargin;
+    uint16_t rightMargin;
+    uint16_t topMargin;
+    uint16_t bottomMargin;
+};
+
+ScreenParams generalScreen = {SCREEN_WIDTH, SCREEN_HEIGHT, 50, 50, 50, 50};
+
+struct ScreenBlocks_X{
+    uint16_t blockX1;
+    uint16_t blockX2;
+    uint16_t blockX3;
+    uint16_t blockX4;
+};
+
+uint16_t FourblocksSize = (generalScreen.screenWidth - (generalScreen.leftMargin + generalScreen.rightMargin))/4;
+
+ScreenBlocks_X general4BlocksX = {
+    static_cast<uint16_t>(0), 
+    static_cast<uint16_t>(FourblocksSize),
+    static_cast<uint16_t>(FourblocksSize * 2),
+    static_cast<uint16_t>(FourblocksSize * 3),
+};
 
 
 struct LineTextParams {
     std::string name;
-    int x_position;
-    int y_position;
-    std::array<int, 3> color;
+    uint16_t x_position;
+    uint16_t y_position;
+    std::array<uint16_t, 3> color;
     std::string text;
     std::string fontPath;
-    int textSize;
+    uint16_t textSize;
     bool centered;
 };
 
-LineTextParams mainMenuParams = {"mainMenu", 1920 / 2, 50, CRTGreen, "MAIN MENU", FONTS_PATH + "retro_computer.ttf", 40, true};
+LineTextParams mainMenuParams = {"mainMenu", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "MAIN MENU", FONTS_PATH + "retro_computer.ttf", 40, true};
 
-
-std::vector<LineTextParams> topics = {
+std::vector<LineTextParams> generalTopics = {
     {"Topic1", 0, 0, CRTGreen, "1. Introduction to C++ Programming", FONTS_PATH + "retro_computer.ttf", 30, false},
     {"Topic2", 0, 0, CRTGreen, "2. Data Types in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
     {"Topic3", 0, 0, CRTGreen, "3. Control Structures in C++", FONTS_PATH + "retro_computer.ttf", 30, false},
@@ -50,12 +117,15 @@ std::vector<LineTextParams> topics = {
     {"Topic10", 0, 0, CRTGreen, "10. Advanced Topics in C++", FONTS_PATH + "retro_computer.ttf", 30, false}
 };
 
+//////////////////////////////////////
+
+
 
 class PrintObject {
 private:
-    int height, width, x_position, y_position;
+    uint16_t height, width, x_position, y_position;
     std::string name; // Object name
-    std::array<int, 3> color; // RGB color
+    std::array<uint16_t, 3> color; // RGB color
     sf::Texture texture; // Texture for the object
     sf::Sprite textureSprite; // Sprite to draw the object
     sf::Font font; // Font for the text
@@ -65,16 +135,16 @@ private:
 
 public:
     // Constructor for figures
-    PrintObject(const std::string& _name, int _width, int _height, int _x_position, int _y_position, std::array<int, 3> _color)
+    PrintObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position, std::array<uint16_t, 3> _color)
         : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color(_color), isText(false), centerText(false) {}
 
     // Constructor for images (sets default values)
-    explicit PrintObject(const std::string& _name, int _width, int _height, int _x_position, int _y_position)
+    explicit PrintObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position)
         : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), color{255, 255, 255}, isText(false), centerText(false) {}
 
     // Constructor for text
-    PrintObject(const std::string& _name, int _x_position, int _y_position, std::array<int, 3> _color, 
-                const std::string& _text, const std::string& fontPath, int _text_size, bool centerText)
+    PrintObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, std::array<uint16_t, 3> _color, 
+                const std::string& _text, const std::string& fontPath, uint16_t _text_size, bool centerText)
         : name(_name), width(0), height(0), x_position(_x_position), y_position(_y_position), color(_color), isText(true) {
         if (!font.loadFromFile(fontPath)) {
             throw std::runtime_error("Failed to load font: " + fontPath);
@@ -106,8 +176,8 @@ public:
     std::string getName() const { return name; }
     void setName(const std::string& _name) { name = _name; }
 
-    int getHeight() const { return height; }
-    void setHeight(int _height) {
+    uint16_t getHeight() const { return height; }
+    void setHeight(uint16_t _height) {
         if (_height >= 0) {
             height = _height;
         } else {
@@ -115,8 +185,8 @@ public:
         }
     }
 
-    int getWidth() const { return width; }
-    void setWidth(int _width) {
+    uint16_t getWidth() const { return width; }
+    void setWidth(uint16_t _width) {
         if (_width >= 0) {
             width = _width;
         } else {
@@ -124,24 +194,36 @@ public:
         }
     }
 
-    int getX_position() const { return x_position; }
-    void setX_position(int _x_position) { x_position = _x_position; }
+    uint16_t getX_position() const { return x_position; }
+    void setX_position(uint16_t _x_position) { x_position = _x_position; }
 
-    int getY_position() const { return y_position; }
-    void setY_position(int _y_position) { y_position = _y_position; }
+    uint16_t getY_position() const { return y_position; }
+    void setY_position(uint16_t _y_position) { y_position = _y_position; }
 
-    void getColor(int& r, int& g, int& b) const {
+    void getColor(uint16_t& r, uint16_t& g, uint16_t& b) const {
         r = color[0];
         g = color[1];
         b = color[2];
     }
 
-    void setColor(int r, int g, int b) {
+    void setColor(uint16_t r, uint16_t g, uint16_t b) {
         color[0] = r;
         color[1] = g;
         color[2] = b;
     }
 
+    sf::Font& getFontSise() {
+        return font;
+    }
+
+    // Setter for font size
+    void setFontSize(uint16_t newFontSize) {
+        if (newFontSize > 0) { // Ensure font size is valid
+            textObj.setCharacterSize(newFontSize);
+        } else {
+            std::cerr << "Error: Font size must be greater than 0." << std::endl;
+        }
+    }
 
     sf::Texture& getTexture() {
     return texture;
@@ -182,7 +264,20 @@ public:
             window.draw(textureSprite);
         }
     }
+
 };
+
+
+void updateFontSize(std::vector<std::shared_ptr<PrintObject>>& textObject, size_t index, int newFontSize) {
+    if (index >= textObject.size()) {
+        std::cerr << "Error: Index out of range." << std::endl;
+        return;
+    }
+
+    // Update the font size of the PrintObject at the given index
+    textObject[index]->setFontSize(newFontSize);
+}
+
 
 // Function to handle the button
 void handleSoundButton(sf::Sprite& soundButton, 
@@ -218,86 +313,98 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
     return music;
 }
 
-std::vector<std::shared_ptr<PrintObject>> createPrintObjects(const std::string& fontsPath) {
-    // Crear el vector de PrintObjects como shared_ptr
-    std::vector<std::shared_ptr<PrintObject>> printObjects;
-    int page_beggining_h = 50;
-    int page_beggining_v = 1920 / 2 - 1920 / 4;
-    int step_size = 50;
-    int next_line = 0;
 
-    // Añadir objetos al vector usando std::make_shared
-    printObjects.push_back(
-        std::make_shared<PrintObject>(
-            mainMenuParams.name, 
-            mainMenuParams.x_position, 
-            mainMenuParams.y_position, 
-            mainMenuParams.color, 
-            mainMenuParams.text, 
-            mainMenuParams.fontPath, 
-            mainMenuParams.textSize, 
-            mainMenuParams.centered
-        )
-    );
-    next_line = mainMenuParams.y_position + 100;
+std::vector<std::shared_ptr<PrintObject>> createSheet(
+    bool hasTitle,
+    uint16_t page_beggining_h,
+    uint16_t page_beggining_v,
+    uint16_t step_size, 
+    const ScreenParams& screen,
+    const std::vector<LineTextParams>& topics,
+    const LineTextParams& title
+) {
+    // Crear el vector de PrintObjects como shared_ptr
+    std::vector<std::shared_ptr<PrintObject>> PrintObjects;
+    uint16_t next_line = 0;
+
+    if (hasTitle){
+        // Añadir objetos al vector usando std::make_shared
+        PrintObjects.push_back(
+            std::make_shared<PrintObject>(
+                title.name, 
+                title.x_position, 
+                title.y_position, 
+                title.color, 
+                title.text, 
+                title.fontPath, 
+                title.textSize, 
+                title.centered
+            )
+        );
+        next_line = title.y_position + step_size * 2;
+    } else {next_line = screen.topMargin + page_beggining_h;}
 
     for (const auto& topic : topics) {
-        printObjects.push_back(std::make_shared<PrintObject>(
-            topic.name, page_beggining_v, next_line, topic.color,
+        PrintObjects.push_back(std::make_shared<PrintObject>(
+            topic.name, screen.leftMargin + page_beggining_v, next_line, topic.color,
             topic.text, topic.fontPath, topic.textSize, topic.centered
         ));
         next_line = next_line + step_size;
     }
 
-    return printObjects;
+    return PrintObjects;
 }
 
 
 
-void drawPrintObjects(sf::RenderWindow& window, const std::vector<std::shared_ptr<PrintObject>>& printObjects) {
-    for (const auto& obj : printObjects) {
-        obj->draw(window); // Llamar al método draw usando el puntero
+void drawPrintObjects(sf::RenderWindow& window, const std::vector<std::shared_ptr<PrintObject>>& PrintObjects) {
+    for (const auto& obj : PrintObjects) {
+        obj->draw(window);
     }
 }
 
-int initAndStartMainWindowLoop(){
+uint16_t initAndStartMainWindowLoop(){
+
+    // Create the grid using the function
+    auto grid = createGrid(SCREEN_WIDTH, SCREEN_HEIGHT, BLOCK_SIZE);
 
     // Create a window
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), WINDOW_TITLE);
+    sf::RenderWindow window(sf::VideoMode(generalScreen.screenWidth, generalScreen.screenHeight), WINDOW_TITLE);
 
 
     // Create PrintObject objects
-    PrintObject* background = new PrintObject(BACKGROUND_IMAGE_OBJ, 1920, 1080, 0, 0);
+    PrintObject* background = new PrintObject(BACKGROUND_IMAGE_OBJ, generalScreen.screenWidth, generalScreen.screenHeight, 0, 0);
     if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) {
         return -1; // Exit if texture loading fails
     }
 
     // Create PrintObject objects
-    PrintObject* cpp150 = new PrintObject(CPP150_IMAGE_OBJ, 100, 100, 200, 800);
+    PrintObject* cpp150 = new PrintObject(CPP150_IMAGE_OBJ, 100, 100, grid[8][56].x , grid[4][56].y);
     if (!cpp150->loadTexture(ICONS_PATH + CPP150_IMAGE_FILE)) {
         return -1; // Exit if texture loading fails
     }
 
-
     // Create PrintObject objects
-    PrintObject* soundON = new PrintObject(SOUND_ON_OBJ, 50, 50, 1920 - 100, 30);
+    PrintObject* soundON = new PrintObject(SOUND_ON_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
     if (!soundON->loadTexture(ICONS_PATH + SOUND_ON_FILE)) {
         return -1; // Exit if texture loading fails
     }
 
     // Create PrintObject objects
-    PrintObject* soundOFF = new PrintObject(SOUND_OFF_OBJ, 50, 50, 1920 - 100, 30);
+    PrintObject* soundOFF = new PrintObject(SOUND_OFF_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
     if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) {
         return -1; // Exit if texture loading fails
     }
 
+    std::shared_ptr<PrintObject> UP_button;
     // Create vector with text objects
-    std::vector<std::shared_ptr<PrintObject>> textObjects = createPrintObjects(FONTS_PATH);
+    std::vector<std::shared_ptr<PrintObject>> textObjects = createSheet(true, 0, general4BlocksX.blockX2, 50, generalScreen , generalTopics, mainMenuParams);
 
     std::shared_ptr<sf::Music> music = loadAndPlayMusic();
     bool isMusicPlaying = true; // Initial sound state
 
     // Main window loop
+    int8_t types = 0;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -310,12 +417,38 @@ int initAndStartMainWindowLoop(){
             if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
                 handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
             }
+
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                    case sf::Keyboard::Up:
+                        updateFontSize(textObjects, types, 30);  // Reset previous font size to 30
+                        types--;  // Decrease index
+                        if (types < 0) {  // If index is out of bounds, wrap around to the last element
+                            types = textObjects.size() - 1;
+                        }
+                        updateFontSize(textObjects, types, 38);  // Update new font size to 38
+                        break;
+                    case sf::Keyboard::Down:
+                        updateFontSize(textObjects, types, 30);  // Reset previous font size to 30
+                        types++;  // Increase index
+                        if (types >= textObjects.size()) {  // If index exceeds size, reset to 0
+                            types = 0;
+                        }
+                        updateFontSize(textObjects, types, 38);  // Update new font size to 38
+                        break;
+                    default:
+                        break;
+                }
+            }
         }
 
-        // Draw elements
+        // Draw Blocks
         window.clear();
         background->draw(window);
         cpp150->draw(window);
+        if (UP_button) {
+            UP_button->draw(window);
+        }
         soundON->draw(window);
         drawPrintObjects(window, textObjects);
         window.display();

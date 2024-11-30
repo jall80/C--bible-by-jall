@@ -36,6 +36,21 @@ Write-Host "Building the project..."
 cmake --build .
 Write-Host "Project built."
 
+try {
+    # Modify the icon of the executable (using rcedit)
+    Write-Host "Changing the icon of the executable..."
+    $exePath = ".\SFMLApp.exe"  # Path to the built executable
+    $iconPath = ".\images\icons\cppIcono.ico"  # Path to the new icon file
+
+    # Use rcedit to change the icon
+    rcedit $exePath --set-icon $iconPath
+    Write-Host "Icon changed successfully."
+}
+catch {
+    # Handle errors
+    Write-Host "Warning: an error occurred at trying to change the icon. Probably rcedit isn't installed in your PC "
+}
+
 # Run the application
 Write-Host "Running the application..."
 .\SFMLApp.exe
