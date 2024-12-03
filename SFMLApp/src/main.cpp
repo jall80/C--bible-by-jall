@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <array>
-#include <memory>
+//#include <memory> // EVALUATE USING THIS LIBRARY IN ORDER TO IMPROVE MEMORY HANDLING
 #include <filesystem> // For filesystem operations
 #include <cstdint>
 
@@ -44,10 +44,10 @@ struct Block {
 };
 
 // Function to create and initialize the 2D matrix with (columns, rows) order
-std::vector<std::vector<Block>> createGrid(int screenWidth, int screenHeight, int blockSize) {
+std::vector<std::vector<Block>> createGrid(int width, int height, int blockSize) {
     // Calculate the number of columns and rows
-    int cols = screenWidth / blockSize;
-    int rows = screenHeight / blockSize;
+    int cols = width / blockSize;
+    int rows = height / blockSize;
 
     // Create the 2D matrix
     std::vector<std::vector<Block>> grid(cols, std::vector<Block>());
@@ -65,8 +65,8 @@ std::vector<std::vector<Block>> createGrid(int screenWidth, int screenHeight, in
 
 
 struct ScreenParams {
-    uint16_t screenWidth;
-    uint16_t screenHeight;
+    uint16_t width;
+    uint16_t height;
     uint16_t leftMargin;
     uint16_t rightMargin;
     uint16_t topMargin;
@@ -82,7 +82,7 @@ struct ScreenBlocks_X{
     uint16_t blockX4;
 };
 
-uint16_t FourblocksSize = (generalScreen.screenWidth - (generalScreen.leftMargin + generalScreen.rightMargin))/4;
+uint16_t FourblocksSize = (generalScreen.width - (generalScreen.leftMargin + generalScreen.rightMargin))/4;
 
 ScreenBlocks_X general4BlocksX = {
     static_cast<uint16_t>(0), 
@@ -103,6 +103,8 @@ struct LineTextParams {
     bool centered;
 };
 
+
+
 LineTextParams mainMenuParams = {"mainMenu", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "MAIN MENU", RETRO_FONTH_PATH, 40, true};
 
 std::vector<LineTextParams> generalTopics = {
@@ -118,12 +120,36 @@ std::vector<LineTextParams> generalTopics = {
     {"Topic10", 0, 0, CRTGreen, "10. Advanced Topics in C++", RETRO_FONTH_PATH, 30, false}
 };
 
-LineTextParams introMenuParams = {"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true};
-
 std::vector<LineTextParams> introductionTopics = {
+    {"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
     {"Topic1-1", 0, 0, CRTGreen, "1. History and Overview of C++", RETRO_FONTH_PATH, 30, false},
     {"Topic1-2", 0, 0, CRTGreen, "2. Setting Up the Development Environment", RETRO_FONTH_PATH, 30, false},
     {"Topic1-3", 0, 0, CRTGreen, "3. Basic Syntax and Structure", RETRO_FONTH_PATH, 30, false},
+};
+
+
+std::vector<LineTextParams> dataTypesTopics = {
+    {"MenuDataTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 40, true},
+    {"Topic2-1", 0, 0, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 30, false},
+    {"Topic2-2", 0, 0, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 30, false},
+    {"Topic2-3", 0, 0, CRTGreen, "3. Character Types", RETRO_FONTH_PATH, 30, false},
+    {"Topic2-4", 0, 0, CRTGreen, "4. Boolean Type", RETRO_FONTH_PATH, 30, false},
+    {"Topic2-5", 0, 0, CRTGreen, "5. Void Type", RETRO_FONTH_PATH, 30, false},
+};
+
+
+std::vector<LineTextParams> TopicIntegralTypes = {
+    {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
+    {"Description", 0, 0, CRTGreen, "1. Description", RETRO_FONTH_PATH, 30, false},
+    {"Example", 0, 0, CRTGreen, "2. Example", RETRO_FONTH_PATH, 30, false},
+    {"Practice", 0, 0, CRTGreen, "3. Practice", RETRO_FONTH_PATH, 30, false},
+};
+
+std::vector<LineTextParams> TopicFloatingpointTypes = {
+    {"Floating-pointTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 40, true},
+    {"Description", 0, 0, CRTGreen, "1. Description", RETRO_FONTH_PATH, 30, false},
+    {"Example", 0, 0, CRTGreen, "2. Example", RETRO_FONTH_PATH, 30, false},
+    {"Practice", 0, 0, CRTGreen, "3. Practice", RETRO_FONTH_PATH, 30, false},
 };
 
 
@@ -218,18 +244,20 @@ public:
 
 class TextObject : public BaseObject {
 private:
-    std::array<uint16_t, 3> color;  // RGB color
+    std::array<uint16_t, 3> color;   // RGB color
     sf::Font font;                  // Font for the text
     sf::Text textObj;               // SFML Text object
     bool centerText;                // Flag to indicate if the text is center-aligned
+    std::string fontPath;           // Path to the font file
+    std::vector<std::shared_ptr<TextObject>> children; // Child nodes
 
 public:
-    // Constructor for text objects
-    TextObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, std::array<uint16_t, 3> _color,
-               const std::string& _text, const std::string& fontPath, uint16_t _text_size, bool _centerText)
-        : BaseObject(_name, 0, 0, _x_position, _y_position), color(_color), centerText(_centerText) {
+    // Constructor
+    TextObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, 
+               std::array<uint16_t, 3> _color, const std::string& _text, const std::string& _fontPath, 
+               uint16_t _text_size, bool _centerText)
+        : BaseObject(_name, 0, 0, _x_position, _y_position), color(_color), fontPath(_fontPath), centerText(_centerText) {
 
-        // Load the font
         if (!font.loadFromFile(fontPath)) {
             throw std::runtime_error("Failed to load font: " + fontPath);
         }
@@ -239,170 +267,85 @@ public:
         textObj.setCharacterSize(_text_size);
         textObj.setFillColor(sf::Color(color[0], color[1], color[2]));
 
-        // Center or left align the text
         sf::FloatRect textBounds = textObj.getLocalBounds();
-
         if (centerText) {
-            // Center-align the text
             textObj.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2);
         } else {
-            // Left-align the text
-            textObj.setOrigin(0, textBounds.top + textBounds.height / 2); // Only vertically centered
+            textObj.setOrigin(0, textBounds.top + textBounds.height / 2);
         }
 
-        // Set the position of the text object
         textObj.setPosition(static_cast<float>(_x_position), static_cast<float>(_y_position));
     }
+
 
     // Destructor
     virtual ~TextObject() {
         std::cout << "Destroying TextObject: " << name << std::endl;
     }
 
-    // Getters for color
-    void getColor(uint16_t& r, uint16_t& g, uint16_t& b) const {
-        r = color[0];
-        g = color[1];
-        b = color[2];
+    // Add a child node
+    void addChild(std::shared_ptr<TextObject> child) {
+        children.push_back(child);
     }
 
-    // Setters for color
-    void setColor(uint16_t r, uint16_t g, uint16_t b) {
-        color[0] = r;
-        color[1] = g;
-        color[2] = b;
-        textObj.setFillColor(sf::Color(color[0], color[1], color[2]));
+    // Get children
+    const std::vector<std::shared_ptr<TextObject>>& getChildren() const {
+        return children;
     }
 
-    // Setter for font size
-    void setFontSize(uint16_t newFontSize) {
-        if (newFontSize > 0) { // Ensure font size is valid
-            textObj.setCharacterSize(newFontSize);
-        } else {
-            std::cerr << "Error: Font size must be greater than 0." << std::endl;
-        }
-    }
-
-    // Draw the text object on the window
+    // Draw the text object and its children recursively
     void draw(sf::RenderWindow& window) {
         window.draw(textObj);
+        for (const auto& child : children) {
+            child->draw(window);
+        }
+    }
+
+    // Print hierarchy for debugging
+    void printHierarchy(int level = 0) const {
+        std::string indentation(level * 2, ' ');
+        std::cout << indentation << "- " << name << std::endl;
+        for (const auto& child : children) {
+            child->printHierarchy(level + 1);
+        }
+    }
+
+    // Sincroniza las coordenadas con el objeto SFML
+    void updateTextPosition() {
+        textObj.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));
+    }
+
+    // Set font size for the text object and optionally its children
+    void setFontSize(uint16_t newFontSize, bool applyToChildren = false) {
+        textObj.setCharacterSize(newFontSize);
+        if (applyToChildren) {
+            for (auto& child : children) {
+                child->setFontSize(newFontSize, applyToChildren);
+            }
+        }
+    }
+
+    // Getters for required attributes
+    std::array<uint16_t, 3> getColor() const {
+        return color;
+    }
+
+    std::string getText() const {
+        return textObj.getString();
+    }
+
+    std::string getFontPath() const {
+        return fontPath;
+    }
+
+    uint16_t getTextSize() const {
+        return textObj.getCharacterSize();
+    }
+
+    bool isCentered() const {
+        return centerText;
     }
 };
-
-class MenuObject : public TextObject {
-private:
-    std::vector<LineTextParams> lineTextParams; // Vector de estructuras LineTextParams
-    std::vector<MenuObject> childMenus;        // Vector de objetos MenuObject (solo para mainMenu)
-
-public:
-    // Constructor para mainMenu
-    MenuObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, 
-               std::array<uint16_t, 3> _color, const std::string& _text, 
-               const std::string& fontPath, uint16_t _text_size, bool _centerText, 
-               const std::vector<LineTextParams>& _lineTextParams, 
-               const std::vector<MenuObject>& _childMenus)
-        : TextObject(_name, _x_position, _y_position, _color, _text, fontPath, _text_size, _centerText),
-          lineTextParams(_lineTextParams), childMenus(_childMenus) {}
-
-    // Constructor para subMenu
-    MenuObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, 
-               std::array<uint16_t, 3> _color, const std::string& _text, 
-               const std::string& fontPath, uint16_t _text_size, bool _centerText, 
-               const std::vector<LineTextParams>& _lineTextParams)
-        : TextObject(_name, _x_position, _y_position, _color, _text, fontPath, _text_size, _centerText),
-          lineTextParams(_lineTextParams), childMenus({}) {}
-
-    // Destructor
-    ~MenuObject() {
-        std::cout << "Destroying MenuObject: " << getName() << std::endl;
-    }
-
-    // Add a new line to the vector
-    void addLine(const LineTextParams& line) {
-        lineTextParams.push_back(line);
-    }
-
-    // Remove a line from the vector (by index)
-    void removeLine(size_t index) {
-        if (index < lineTextParams.size()) {
-            lineTextParams.erase(lineTextParams.begin() + index);
-        } else {
-            std::cerr << "Error: Invalid index for removeLine." << std::endl;
-        }
-    }
-
-    // Add a child menu (only for mainMenu)
-    void addChildMenu(const MenuObject& childMenu) {
-        childMenus.push_back(childMenu);
-    }
-
-    // Getters
-    const std::vector<LineTextParams>& getLineTextParams() const {
-        return lineTextParams;
-    }
-
-    const std::vector<MenuObject>& getChildMenus() const {
-        return childMenus;
-    }
-
-    // Draw the menu object and all its lines
-    void draw(sf::RenderWindow& window) {
-        // Draw the main text object
-        TextObject::draw(window);
-
-        // Draw additional lines
-        for (const auto& line : lineTextParams) {
-            sf::Text tempText;
-            sf::Font tempFont;
-            if (!tempFont.loadFromFile(line.fontPath)) {
-                std::cerr << "Error: Could not load font from path: " << line.fontPath << std::endl;
-                continue;
-            }
-
-            tempText.setFont(tempFont);
-            tempText.setString(line.text);
-            tempText.setCharacterSize(line.textSize);
-            tempText.setFillColor(sf::Color(line.color[0], line.color[1], line.color[2]));
-
-            // Center text if required
-            if (line.centered) {
-                sf::FloatRect textBounds = tempText.getLocalBounds();
-                tempText.setOrigin(textBounds.left + textBounds.width / 2, textBounds.top + textBounds.height / 2);
-            } else {
-                tempText.setOrigin(0, 0); // No centering
-            }
-
-            tempText.setPosition(static_cast<float>(line.x_position), static_cast<float>(line.y_position));
-            window.draw(tempText);
-        }
-
-        // Si childMenus contiene objetos no constantes
-        for (auto& childMenu : childMenus) {  // Usa auto& en lugar de const auto&
-            childMenu.draw(window);
-        }
-    }
-};
-
-//////////////////////////////////////////
-
-void updateFontSize(std::vector<std::shared_ptr<TextObject>>& textObject, size_t index, int newFontSize) {
-    if (index >= textObject.size()) {
-        std::cerr << "Error: Index out of range." << std::endl;
-        return;
-    }
-
-    // Update the font size of the TextObject at the given index
-    textObject[index]->setFontSize(newFontSize);
-}
-
-// Search in vector of objects
-const BaseObject& getTopicByIndex(const std::vector<BaseObject>& topics, size_t index) {
-    if (index >= topics.size()) {
-        throw std::out_of_range("Index out of range");
-    }
-    return topics[index];
-}
-
 
 
 // Function to handle the button
@@ -430,7 +373,7 @@ void handleSoundButton(sf::Sprite& soundButton,
 // Load music
 std::shared_ptr<sf::Music> loadAndPlayMusic() {
     auto music = std::make_shared<sf::Music>();
-    if (!music->openFromFile(AUDIOS_PATH + "MIX_MASTER_BOOT_RECORD_INTERRUPT_REQUEST_INTERNET_PROTOCOL.mp3")) {
+    if (!music->openFromFile(AUDIOS_PATH + "MASTER_BOOT_RECORD_INTERRUPT_REQUEST.mp3")) {
         std::cerr << "Error loading music.\n";
         return nullptr; // Return nullptr to indicate failure
     }
@@ -440,53 +383,72 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
 }
 
 
-std::vector<std::shared_ptr<TextObject>> createSheet(
-    bool hasTitle,
-    uint16_t page_beggining_h,
-    uint16_t page_beggining_v,
-    uint16_t step_size, 
+// Función para dibujar los nodos existentes, comenzando desde un nodo raíz
+void drawSheetFromRoot(
+    const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
-    const std::vector<LineTextParams>& topics,
-    const LineTextParams& title
+    sf::RenderWindow& window,
+    uint16_t step_size
 ) {
-    // Crear el vector de TextObjects como shared_ptr
-    std::vector<std::shared_ptr<TextObject>> TextObjects;
-    uint16_t next_line = 0;
-
-    if (hasTitle){
-        // Añadir objetos al vector usando std::make_shared
-        TextObjects.push_back(
-            std::make_shared<TextObject>(
-                title.name, 
-                title.x_position, 
-                title.y_position, 
-                title.color, 
-                title.text, 
-                title.fontPath, 
-                title.textSize, 
-                title.centered
-            )
-        );
-        next_line = title.y_position + step_size * 2;
-    } else {next_line = screen.topMargin + page_beggining_h;}
-
-    for (const auto& topic : topics) {
-        TextObjects.push_back(std::make_shared<TextObject>(
-            topic.name, screen.leftMargin + page_beggining_v, next_line, topic.color,
-            topic.text, topic.fontPath, topic.textSize, topic.centered
-        ));
-        next_line = next_line + step_size;
+    if (!rootNode) {
+        std::cerr << "Error: Root node is null." << std::endl;
+        return;
     }
 
-    return TextObjects;
+    uint16_t next_line = step_size * 2; // Comenzar desde una posición vertical más centrada
+
+    // Dibujar el nodo raíz centrado
+    uint16_t root_x_position = general4BlocksX.blockX2; // Ajustar para centrar en la pantalla
+    rootNode->setXPosition(root_x_position);  // Ajustar posición en X
+    rootNode->setYPosition(next_line);       // Ajustar posición en Y
+    rootNode->updateTextPosition();
+    rootNode->draw(window); // Dibujar el nodo raíz
+
+    next_line += step_size * 2; // Espacio adicional debajo del nodo raíz
+
+    // Dibujar los hijos del nodo raíz
+    const auto& children = rootNode->getChildren();
+    for (const auto& child : children) {
+        // Calcular la posición centrada para cada hijo
+        uint16_t child_x_position = general4BlocksX.blockX2;
+        child->setXPosition(child_x_position); // Actualizar posición X del hijo
+        child->setYPosition(next_line);        // Actualizar posición Y del hijo
+        child->updateTextPosition();
+        child->draw(window); // Dibujar el hijo
+        
+        next_line += step_size; // Avanzar a la siguiente línea
+    }
 }
 
 
-
-void drawTextObjects(sf::RenderWindow& window, const std::vector<std::shared_ptr<TextObject>>& TextObjects) {
-    for (const auto& obj : TextObjects) {
-        obj->draw(window);
+void populateRootWithSubtopics(
+    const std::shared_ptr<TextObject>& root,
+    std::vector<std::shared_ptr<TextObject>> subTopics)
+{
+    for (const auto& child : subTopics) {
+        root->addChild(child);
     }
+}
+
+std::vector<std::shared_ptr<TextObject>> createTextObjects(const std::vector<LineTextParams>& params) {
+    std::vector<std::shared_ptr<TextObject>> textObjects;
+
+    for (const auto& param : params) {
+        auto textObject = std::make_shared<TextObject>(
+            param.name, 
+            param.x_position, 
+            param.y_position, 
+            param.color, 
+            param.text, 
+            param.fontPath, 
+            param.textSize, 
+            param.centered
+        );
+
+        textObjects.push_back(textObject);
+    }
+
+    return textObjects;
 }
 
 
@@ -496,11 +458,11 @@ uint16_t initAndStartMainWindowLoop(){
     auto grid = createGrid(SCREEN_WIDTH, SCREEN_HEIGHT, BLOCK_SIZE);
 
     // Create a window
-    sf::RenderWindow window(sf::VideoMode(generalScreen.screenWidth, generalScreen.screenHeight), WINDOW_TITLE);
+    sf::RenderWindow window(sf::VideoMode(generalScreen.width, generalScreen.height), WINDOW_TITLE);
 
 
     // Create PrintObject objects
-    TextureObject* background = new TextureObject(BACKGROUND_IMAGE_OBJ, generalScreen.screenWidth, generalScreen.screenHeight, 0, 0);
+    TextureObject* background = new TextureObject(BACKGROUND_IMAGE_OBJ, generalScreen.width, generalScreen.height, 0, 0);
     if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) {
         return -1; // Exit if texture loading fails
     }
@@ -523,16 +485,34 @@ uint16_t initAndStartMainWindowLoop(){
         return -1; // Exit if texture loading fails
     }
 
-    //std::vector<std::shared_ptr<TextObject>> IntroductionMenuObjects = createSheet(true, 0, general4BlocksX.blockX2, 80, generalScreen , introductionTopics, introMenuParams);
-    // Create vector with text objects
-    std::vector<std::shared_ptr<TextObject>> MenuObjects = createSheet(true, 0, general4BlocksX.blockX2, 50, generalScreen , generalTopics, mainMenuParams);
+     // Create the root object
+        auto mainMenu = std::make_shared<TextObject>(
+        mainMenuParams.name,
+        mainMenuParams.x_position,
+        mainMenuParams.y_position,
+        mainMenuParams.color,
+        mainMenuParams.text,
+        mainMenuParams.fontPath,
+        mainMenuParams.textSize,
+        mainMenuParams.centered
+    );
 
+    // Create TextObjects from generalTopics struct
+    auto subTopics = createTextObjects(generalTopics);
 
+    //Assing subTopics as children nodes to mainMenu root node
+    populateRootWithSubtopics(mainMenu, subTopics);
+
+    // Get children from root node
+    const auto& mainMenuSubs = mainMenu->getChildren();
+
+    // Create music pointer
     std::shared_ptr<sf::Music> music = loadAndPlayMusic();
     bool isMusicPlaying = true; // Initial sound state
 
     // Main window loop
     int8_t types = 0;
+    int8_t context = 0;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -546,35 +526,48 @@ uint16_t initAndStartMainWindowLoop(){
                 handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
             }
 
+            
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                     case sf::Keyboard::Up:
-                        updateFontSize(MenuObjects, types, 30);  // Reset previous font size to 30
+                        mainMenuSubs[types]->setFontSize(30);  // Reset previous font size to 30
                         types--;  // Decrease index
+                        
                         if (types < 0) {  // If index is out of bounds, wrap around to the last element
-                            types = MenuObjects.size() - 1;
+                            types = mainMenuSubs.size() - 1;
                         }
-                        updateFontSize(MenuObjects, types, 38);  // Update new font size to 38
+                        
+                        mainMenuSubs[types]->setFontSize(38);  // Update new font size to 38
                         break;
                     case sf::Keyboard::Down:
-                        updateFontSize(MenuObjects, types, 30);  // Reset previous font size to 30
+                        mainMenuSubs[types]->setFontSize(30);  // Reset previous font size to 30
                         types++;  // Increase index
-                        if (types >= MenuObjects.size()) {  // If index exceeds size, reset to 0
+                        
+                        if (types >= mainMenuSubs.size()) {  // If index exceeds size, reset to 0
                             types = 0;
                         }
-                        updateFontSize(MenuObjects, types, 38);  // Update new font size to 38
+                        
+                        mainMenuSubs[types]->setFontSize(38);  // Update new font size to 38
                         break;
+                    // I MUST FINISH THIS PART :)
                     case sf::Keyboard::Enter:
-                        //updateFontSize(MenuObjects, types, 20);  // Update new font size to 38
-                        //const PrintObject& selectedTopic = getTopicByIndex(MenuObjects, type);
-                        if(types == 1){
-                            MenuObjects = createSheet(true, 0, general4BlocksX.blockX2, 80, generalScreen , introductionTopics, introMenuParams);
+
+                        if(types != 0){
+
+                            context = 1;
+                        }
+                        break;
+                    case sf::Keyboard::Left:
+                        if (context == 1){
+   
+                            context = 0;
                         }
                         break;
                     default:
                         break;
                 }
             }
+            
         }
 
         // Draw Blocks
@@ -582,7 +575,8 @@ uint16_t initAndStartMainWindowLoop(){
         background->draw(window);
         cpp150->draw(window);
         soundON->draw(window);
-        drawTextObjects(window, MenuObjects);
+        drawSheetFromRoot(mainMenu, generalScreen, window, 50);
+
         window.display();
     }
 
