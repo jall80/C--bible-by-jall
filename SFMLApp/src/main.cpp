@@ -3,9 +3,10 @@
 #include <iostream>
 #include <string>
 #include <array>
-//#include <memory> // EVALUATE USING THIS LIBRARY IN ORDER TO IMPROVE MEMORY HANDLING
+#include <memory> // EVALUATE USING THIS LIBRARY IN ORDER TO IMPROVE MEMORY HANDLING
 #include <filesystem> // For filesystem operations
 #include <cstdint>
+#include <optional>
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
@@ -101,6 +102,8 @@ struct LineTextParams {
     std::string fontPath;
     uint16_t textSize;
     bool centered;
+    //std::optional<std::vector<std::shared_ptr<LineTextParams>>> subtopics;
+    //std::optional<std::vector<std::vector<LineTextParams>>> subtopics;
 };
 
 
@@ -120,16 +123,16 @@ std::vector<LineTextParams> generalTopics = {
     {"Topic10", 0, 0, CRTGreen, "10. Advanced Topics in C++", RETRO_FONTH_PATH, 30, false}
 };
 
+//{"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
+
 std::vector<LineTextParams> introductionTopics = {
-    {"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
     {"Topic1-1", 0, 0, CRTGreen, "1. History and Overview of C++", RETRO_FONTH_PATH, 30, false},
     {"Topic1-2", 0, 0, CRTGreen, "2. Setting Up the Development Environment", RETRO_FONTH_PATH, 30, false},
     {"Topic1-3", 0, 0, CRTGreen, "3. Basic Syntax and Structure", RETRO_FONTH_PATH, 30, false},
 };
 
-
+//{"MenuDataTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> dataTypesTopics = {
-    {"MenuDataTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 40, true},
     {"Topic2-1", 0, 0, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 30, false},
     {"Topic2-2", 0, 0, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 30, false},
     {"Topic2-3", 0, 0, CRTGreen, "3. Character Types", RETRO_FONTH_PATH, 30, false},
@@ -137,16 +140,16 @@ std::vector<LineTextParams> dataTypesTopics = {
     {"Topic2-5", 0, 0, CRTGreen, "5. Void Type", RETRO_FONTH_PATH, 30, false},
 };
 
-
+//   {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> TopicIntegralTypes = {
-    {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
     {"Description", 0, 0, CRTGreen, "1. Description", RETRO_FONTH_PATH, 30, false},
     {"Example", 0, 0, CRTGreen, "2. Example", RETRO_FONTH_PATH, 30, false},
     {"Practice", 0, 0, CRTGreen, "3. Practice", RETRO_FONTH_PATH, 30, false},
 };
 
+//{"Floating-pointTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 40, true},
+
 std::vector<LineTextParams> TopicFloatingpointTypes = {
-    {"Floating-pointTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 40, true},
     {"Description", 0, 0, CRTGreen, "1. Description", RETRO_FONTH_PATH, 30, false},
     {"Example", 0, 0, CRTGreen, "2. Example", RETRO_FONTH_PATH, 30, false},
     {"Practice", 0, 0, CRTGreen, "3. Practice", RETRO_FONTH_PATH, 30, false},
@@ -250,6 +253,7 @@ private:
     bool centerText;                // Flag to indicate if the text is center-aligned
     std::string fontPath;           // Path to the font file
     std::vector<std::shared_ptr<TextObject>> children; // Child nodes
+    std::weak_ptr<TextObject> parent;
 
 public:
     // Constructor
@@ -283,6 +287,17 @@ public:
         std::cout << "Destroying TextObject: " << name << std::endl;
     }
 
+    // Método para establecer el padre
+    void setParent(const std::shared_ptr<TextObject>& _parent) {
+        parent = _parent;
+    }
+
+    // Método para obtener el padre
+    std::shared_ptr<TextObject> getParent() const {
+        return parent.lock(); // Convierte el weak_ptr en shared_ptr si es válido
+    }
+
+
     // Add a child node
     void addChild(std::shared_ptr<TextObject> child) {
         children.push_back(child);
@@ -293,12 +308,15 @@ public:
         return children;
     }
 
-    // Draw the text object and its children recursively
+
+    // Draw the text object and its children recursively (ELIMINATE recursively OR ADD IT IN ANOTHER FUNCTION )
     void draw(sf::RenderWindow& window) {
         window.draw(textObj);
+        /*
         for (const auto& child : children) {
             child->draw(window);
         }
+        */
     }
 
     // Print hierarchy for debugging
@@ -347,6 +365,20 @@ public:
     }
 };
 
+
+// Función recursiva para calcular la profundidad máxima del árbol
+int getMaxDepth(const std::shared_ptr<TextObject>& node) {
+    if (!node) {
+        return 0; // Árbol vacío
+    }
+
+    int maxDepth = 0;
+    for (const auto& child : node->getChildren()) {
+        maxDepth = std::max(maxDepth, getMaxDepth(child));
+    }
+
+    return maxDepth + 1; // 0 has not children (leaf node)/ 1 has at least one child
+}
 
 // Function to handle the button
 void handleSoundButton(sf::Sprite& soundButton, 
@@ -421,12 +453,15 @@ void drawSheetFromRoot(
 }
 
 
+
+
 void populateRootWithSubtopics(
     const std::shared_ptr<TextObject>& root,
     std::vector<std::shared_ptr<TextObject>> subTopics)
 {
     for (const auto& child : subTopics) {
         root->addChild(child);
+        child->setParent(root);
     }
 }
 
@@ -449,6 +484,11 @@ std::vector<std::shared_ptr<TextObject>> createTextObjects(const std::vector<Lin
     }
 
     return textObjects;
+}
+
+void createTree(const std::shared_ptr<TextObject>& root, const std::vector<LineTextParams>& nodes) {
+    auto subTopics = createTextObjects(nodes);
+    populateRootWithSubtopics(root, subTopics);
 }
 
 
@@ -486,7 +526,7 @@ uint16_t initAndStartMainWindowLoop(){
     }
 
      // Create the root object
-        auto mainMenu = std::make_shared<TextObject>(
+    auto mainMenu = std::make_shared<TextObject>(
         mainMenuParams.name,
         mainMenuParams.x_position,
         mainMenuParams.y_position,
@@ -497,20 +537,22 @@ uint16_t initAndStartMainWindowLoop(){
         mainMenuParams.centered
     );
 
-    // Create TextObjects from generalTopics struct
-    auto subTopics = createTextObjects(generalTopics);
 
-    //Assing subTopics as children nodes to mainMenu root node
-    populateRootWithSubtopics(mainMenu, subTopics);
+    // Create the root object
+    createTree(mainMenu, generalTopics);
+    createTree(mainMenu->getChildren()[0], introductionTopics);
+    createTree(mainMenu->getChildren()[1], dataTypesTopics);
 
-    // Get children from root node
-    const auto& mainMenuSubs = mainMenu->getChildren();
+    createTree(mainMenu->getChildren()[0]->getChildren()[0], TopicIntegralTypes);
+    createTree(mainMenu->getChildren()[1]->getChildren()[1], TopicFloatingpointTypes);
 
     // Create music pointer
     std::shared_ptr<sf::Music> music = loadAndPlayMusic();
     bool isMusicPlaying = true; // Initial sound state
 
     // Main window loop
+    auto selectedMenu = mainMenu;
+    std::vector<std::shared_ptr<TextObject>> selectedMenuChildren = mainMenu->getChildren();
     int8_t types = 0;
     int8_t context = 0;
     while (window.isOpen()) {
@@ -530,37 +572,37 @@ uint16_t initAndStartMainWindowLoop(){
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                     case sf::Keyboard::Up:
-                        mainMenuSubs[types]->setFontSize(30);  // Reset previous font size to 30
+                        selectedMenuChildren[types]->setFontSize(30);  // Reset previous font size to 30
                         types--;  // Decrease index
                         
                         if (types < 0) {  // If index is out of bounds, wrap around to the last element
-                            types = mainMenuSubs.size() - 1;
+                            types = selectedMenuChildren.size() - 1;
                         }
                         
-                        mainMenuSubs[types]->setFontSize(38);  // Update new font size to 38
+                        selectedMenuChildren[types]->setFontSize(38);  // Update new font size to 38
                         break;
                     case sf::Keyboard::Down:
-                        mainMenuSubs[types]->setFontSize(30);  // Reset previous font size to 30
+                        selectedMenuChildren[types]->setFontSize(30);  // Reset previous font size to 30
                         types++;  // Increase index
                         
-                        if (types >= mainMenuSubs.size()) {  // If index exceeds size, reset to 0
+                        if (types >= selectedMenuChildren.size()) {  // If index exceeds size, reset to 0
                             types = 0;
                         }
                         
-                        mainMenuSubs[types]->setFontSize(38);  // Update new font size to 38
+                        selectedMenuChildren[types]->setFontSize(38);  // Update new font size to 38
                         break;
                     // I MUST FINISH THIS PART :)
                     case sf::Keyboard::Enter:
-
-                        if(types != 0){
-
-                            context = 1;
+                        if(getMaxDepth(selectedMenu) > 1){
+                            selectedMenuChildren[types]->setFontSize(30);  // Reset previous font size to 30
+                            selectedMenu = selectedMenu->getChildren()[types];
+                            selectedMenuChildren = selectedMenu->getChildren();
                         }
                         break;
                     case sf::Keyboard::Left:
-                        if (context == 1){
-   
-                            context = 0;
+                        if (selectedMenu != mainMenu){
+                            selectedMenu = selectedMenu->getParent();
+                            selectedMenuChildren = selectedMenu->getChildren();
                         }
                         break;
                     default:
@@ -575,7 +617,7 @@ uint16_t initAndStartMainWindowLoop(){
         background->draw(window);
         cpp150->draw(window);
         soundON->draw(window);
-        drawSheetFromRoot(mainMenu, generalScreen, window, 50);
+        drawSheetFromRoot(selectedMenu, generalScreen, window, 50);
 
         window.display();
     }
