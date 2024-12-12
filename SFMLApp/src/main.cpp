@@ -7,6 +7,10 @@
 #include <filesystem> // For filesystem operations
 #include <cstdint>
 #include <optional>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <chrono>
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
@@ -23,6 +27,10 @@ const std::string SOUND_OFF_OBJ = "soundOFF";
 const std::string SOUND_OFF_FILE = "soundOFF.png";
 const std::string CPP150_IMAGE_OBJ = "cpp150";
 const std::string CPP150_IMAGE_FILE = "cpp150.png";
+const std::string CPP100_IMAGE_OBJ = "cpp100";
+const std::string CPP100_IMAGE_FILE = "cpp100.png";
+const std::string CPP50_IMAGE_OBJ = "cpp50";
+const std::string CPP50_IMAGE_FILE = "cpp50.png";
 constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
 
 //For matrix
@@ -166,11 +174,17 @@ protected:
     uint16_t x_position;
     uint16_t y_position;
     std::string name;
+    float velocity_x; // Nueva variable miembro para la velocidad en X
+    float velocity_y; // Nueva variable miembro para la velocidad en Y
 
 public:
-    // Constructor
+    // Constructor sin velocidad
     BaseObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position)
-        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position) {}
+        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), velocity_x(0.0f), velocity_y(0.0f) {}
+
+    // Constructor con velocidad
+    BaseObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position, float _velocity_x, float _velocity_y)
+        : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), velocity_x(_velocity_x), velocity_y(_velocity_y) {}
 
     // Destructor
     virtual ~BaseObject() = default;
@@ -181,6 +195,8 @@ public:
     uint16_t getWidth() const { return width; }
     uint16_t getXPosition() const { return x_position; }
     uint16_t getYPosition() const { return y_position; }
+    float getVelocityX() const { return velocity_x; }
+    float getVelocityY() const { return velocity_y; }
 
     // Setters
     void setName(const std::string& _name) { name = _name; }
@@ -188,6 +204,8 @@ public:
     void setWidth(uint16_t _width) { width = _width; }
     void setXPosition(uint16_t _x_position) { x_position = _x_position; }
     void setYPosition(uint16_t _y_position) { y_position = _y_position; }
+    void setVelocityX(float _velocity_x) { velocity_x = _velocity_x; }
+    void setVelocityY(float _velocity_y) { velocity_y = _velocity_y; }
 };
 
 // Clase derivada TextureObject
@@ -197,9 +215,13 @@ private:
     sf::Sprite textureSprite;    // Sprite para dibujar el objeto
 
 public:
-    // Constructor
+    // Constructor sin velocidad
     TextureObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position)
         : BaseObject(_name, _width, _height, _x_position, _y_position) {}
+
+    // Constructor con velocidad
+    TextureObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position, float _velocity_x, float _velocity_y)
+        : BaseObject(_name, _width, _height, _x_position, _y_position, _velocity_x, _velocity_y) {}
 
     // Destructor
     virtual ~TextureObject() {
@@ -222,7 +244,7 @@ public:
     }
 
     sf::Texture& getTexture() {
-    return texture;
+        return texture;
     }
 
     const sf::Texture& getTexture() const {
@@ -237,11 +259,17 @@ public:
         return textureSprite;
     }
 
+    // Función para actualizar la posición del objeto
+    void updatePosition() {
+        textureSprite.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));
+    }
+
     // Función para dibujar el objeto en la pantalla
     void draw(sf::RenderWindow& window) {
         window.draw(textureSprite);
     }
 };
+
 
 
 class TextObject : public BaseObject {
@@ -431,22 +459,23 @@ void handleSoundButton(sf::Sprite& soundButton,
                        sf::Texture& soundOnTexture, 
                        sf::Texture& soundOffTexture, 
                        sf::Music& music, 
-                       bool& isMusicPlaying, 
+                       std::atomic<bool>& isMusicPlaying, 
                        const sf::RenderWindow& window) 
 {
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
     if (soundButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
-        if (isMusicPlaying) {
+        if (isMusicPlaying.load()) {
             music.pause();
             soundButton.setTexture(soundOffTexture); // Switch to sound-off icon
-            isMusicPlaying = false;
+            isMusicPlaying.store(false);
         } else {
             music.play();
             soundButton.setTexture(soundOnTexture); // Switch to sound-on icon
-            isMusicPlaying = true;
+            isMusicPlaying.store(true);
         }
     }
 }
+
 
 // Load music
 std::shared_ptr<sf::Music> loadAndPlayMusic() {
@@ -552,150 +581,217 @@ void createTree(const std::shared_ptr<TextObject>& root,
     }
 }
 
+// Función para detectar si dos objetos están colisionando
+bool isColliding(const TextureObject& obj1, const TextureObject& obj2) {
+    // Comprobar si las cajas de los objetos se solapan
+    return !(obj1.getXPosition() + obj1.getWidth()*0.86 < obj2.getXPosition() || 
+             obj1.getXPosition() > obj2.getXPosition() + obj2.getWidth()*0.86 || 
+             obj1.getYPosition() + obj1.getHeight()*0.86 < obj2.getYPosition() || 
+             obj1.getYPosition() > obj2.getYPosition() + obj2.getHeight()*0.86);
+}
+
+
+void moveObjects(std::vector<TextureObject*>& objects, 
+                 const sf::RenderWindow& window, 
+                 std::atomic<bool>& needsRedraw, 
+                 std::mutex& positionMutex) {
+    while (window.isOpen()) {
+        {
+            std::lock_guard<std::mutex> lock(positionMutex);
+
+            for (size_t i = 0; i < objects.size(); ++i) {
+                auto* obj = objects[i];
+
+                // Obtener las velocidades en X e Y directamente del objeto
+                float velocity_x = obj->getVelocityX();
+                float velocity_y = obj->getVelocityY();
+
+                // Obtener la posición actual del objeto
+                float posX = obj->getXPosition();
+                float posY = obj->getYPosition();
+
+                // Aplicar las velocidades para mover el objeto
+                posX += velocity_x;  // Movimiento en X
+                posY += velocity_y;  // Movimiento en Y
+
+                // Verificar colisiones con los límites de la ventana
+                if (posX <= 0 || posX + obj->getWidth() >= window.getSize().x) {
+                    obj->setVelocityX(-velocity_x); // Invertir velocidad en X
+                }
+                if (posY <= 0 || posY + obj->getHeight() >= window.getSize().y) {
+                    obj->setVelocityY(-velocity_y); // Invertir velocidad en Y
+                }
+
+
+                // Actualizar la posición del objeto
+                obj->setXPosition(posX);
+                obj->setYPosition(posY);
+                obj->updatePosition(); // Actualiza la posición en el sprite
+
+                // Verificar colisiones con otros objetos
+                for (size_t j = i + 1; j < objects.size(); ++j) {
+                    auto* otherObj = objects[j];
+
+                    // Comprobar si hay colisión entre obj y otherObj
+                    if (isColliding(*obj, *otherObj)) {
+                        // Invertir las velocidades en X y Y de ambos objetos en caso de colisión
+                        obj->setVelocityX(-velocity_x);
+                        obj->setVelocityY(-velocity_y);
+                        otherObj->setVelocityX(-otherObj->getVelocityX());
+                        otherObj->setVelocityY(-otherObj->getVelocityY());
+
+                    }
+                }
+            }
+        }
+
+        // Indicar que se necesita redibujar la ventana
+        needsRedraw.store(true);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+
 
 uint16_t initAndStartMainWindowLoop() {
-    // Initialize the grid based on screen dimensions and block size
+    // Initialize the grid once
     auto grid = createGrid(SCREEN_WIDTH, SCREEN_HEIGHT, BLOCK_SIZE);
 
     // Create the main application window
     sf::RenderWindow window(sf::VideoMode(generalScreen.width, generalScreen.height), WINDOW_TITLE);
 
-    // Create the background texture object and load its texture
-    TextureObject* background = new TextureObject(BACKGROUND_IMAGE_OBJ, generalScreen.width, generalScreen.height, 0, 0);
-    if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) {
-        return -1; // Exit if the background texture fails to load
-    }
+    // Load and validate textures
+    std::unique_ptr<TextureObject> background = std::make_unique<TextureObject>(BACKGROUND_IMAGE_OBJ, generalScreen.width, generalScreen.height, 0, 0);
+    if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) return -1;
 
-    // Create the cpp150 icon texture object and load its texture
-    TextureObject* cpp150 = new TextureObject(CPP150_IMAGE_OBJ, 100, 100, grid[8][56].x , grid[4][56].y);
-    if (!cpp150->loadTexture(ICONS_PATH + CPP150_IMAGE_FILE)) {
-        return -1; // Exit if the icon texture fails to load
-    }
+    std::unique_ptr<TextureObject> cpp150 = std::make_unique<TextureObject>(CPP150_IMAGE_OBJ, 150, 150, grid[8][36].x, grid[8][36].y, 1.0f, 1.0f);
+    if (!cpp150->loadTexture(ICONS_PATH + CPP150_IMAGE_FILE)) return -1;
 
-    // Create the "Sound ON" icon texture object and load its texture
-    TextureObject* soundON = new TextureObject(SOUND_ON_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
-    if (!soundON->loadTexture(ICONS_PATH + SOUND_ON_FILE)) {
-        return -1; // Exit if the texture fails to load
-    }
+    std::unique_ptr<TextureObject> cpp100 = std::make_unique<TextureObject>(CPP100_IMAGE_OBJ, 100, 100, grid[32][10].x, grid[32][10].y, 1.0f, -1.0f);
+    if (!cpp100->loadTexture(ICONS_PATH + CPP100_IMAGE_FILE)) return -1;
 
-    // Create the "Sound OFF" icon texture object and load its texture
-    TextureObject* soundOFF = new TextureObject(SOUND_OFF_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
-    if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) {
-        return -1; // Exit if the texture fails to load
-    }
+    std::unique_ptr<TextureObject> cpp50 = std::make_unique<TextureObject>(CPP50_IMAGE_OBJ, 50, 50, grid[64][56].x, grid[64][56].y, -1.0f, -1.0f);
+    if (!cpp50->loadTexture(ICONS_PATH + CPP50_IMAGE_FILE)) return -1;
 
-    // Initialize the main menu as the root object for the tree structure
+    std::unique_ptr<TextureObject> soundON = std::make_unique<TextureObject>(SOUND_ON_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
+    if (!soundON->loadTexture(ICONS_PATH + SOUND_ON_FILE)) return -1;
+
+    std::unique_ptr<TextureObject> soundOFF = std::make_unique<TextureObject>(SOUND_OFF_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
+    if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) return -1;
+
+    // Initialize menu and hierarchical tree
     auto mainMenu = std::make_shared<TextObject>(
-        mainMenuParams.name,
-        mainMenuParams.x_position,
-        mainMenuParams.y_position,
-        mainMenuParams.color,
-        mainMenuParams.text,
-        mainMenuParams.fontPath,
-        mainMenuParams.textSize,
-        mainMenuParams.centered
+        mainMenuParams.name, mainMenuParams.x_position, mainMenuParams.y_position, mainMenuParams.color,
+        mainMenuParams.text, mainMenuParams.fontPath, mainMenuParams.textSize, mainMenuParams.centered
     );
-
-    // Build the hierarchical tree structure starting from the root menu
     createTree(mainMenu, generalTopics, 1);
 
-    // A vector to store the navigation path through the menu hierarchy
-    std::vector<int> indices = {};
-
-    // Load and start playing background music
+    std::vector<int> indices;
     std::shared_ptr<sf::Music> music = loadAndPlayMusic();
-    bool isMusicPlaying = true; // Tracks the current music state (ON/OFF)
+    std::atomic<bool> isMusicPlaying = true;
 
-    bool change = true; // Tracks if the screen needs to be redrawn
-    auto selectedMenu = mainMenu; // Points to the currently selected menu
-    std::vector<std::shared_ptr<TextObject>> selectedMenuChildren = mainMenu->getChildren(); // Get children of the current menu
-    int8_t types = 0;   // Tracks the currently selected child index
-    int8_t context = 0; // Context variable (usage undefined in this scope)
+    auto selectedMenu = mainMenu;
+    auto selectedMenuChildren = selectedMenu->getChildren();
+    int8_t types = 0;
 
-    // Main event-processing and rendering loop
+
+    std::vector<TextureObject*> rawPointers = {cpp150.get(), cpp100.get(), cpp50.get()};
+
+    // Declarar el thread, mutex y atomic flag
+    std::thread movementThread;
+    std::mutex positionMutex;
+    std::atomic<bool> needsRedraw(true);
+
+    // Llamar a la función moveObjects en un thread
+    movementThread = std::thread(moveObjects, std::ref(rawPointers), std::cref(window), std::ref(needsRedraw), std::ref(positionMutex));
+
+    // Thread for music management
+    std::thread musicThread([&]() {
+        while (window.isOpen()) {
+            // Simulate music management tasks
+            if (isMusicPlaying) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        }
+    });
+
+    // Main event loop
     while (window.isOpen()) {
         sf::Event event;
-
-        // Process all events in the event queue
         while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed || 
-                (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)) {
-                // Close the window when the user presses Escape or closes the window
-                window.close();
-            }
+            switch (event.type) {
+                case sf::Event::Closed:
+                    window.close();
+                    break;
 
-            // Handle mouse clicks for toggling sound
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
-                handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
-                change = true; // Mark the screen as needing an update
-            }
+                case sf::Event::KeyPressed:
+                    needsRedraw = true;
+                    if (event.key.code == sf::Keyboard::Escape) {
+                        window.close();
+                    } else if (event.key.code == sf::Keyboard::Up) {
+                        selectedMenuChildren[types]->setFontSize(30);
+                        types = (types - 1 + selectedMenuChildren.size()) % selectedMenuChildren.size();
+                        selectedMenuChildren[types]->setFontSize(38);
+                    } else if (event.key.code == sf::Keyboard::Down) {
+                        selectedMenuChildren[types]->setFontSize(30);
+                        types = (types + 1) % selectedMenuChildren.size();
+                        selectedMenuChildren[types]->setFontSize(38);
+                    } else if (event.key.code == sf::Keyboard::Enter && !selectedMenu->isLeaf()) {
+                        selectedMenuChildren[types]->setFontSize(30);
+                        indices.push_back(types);
+                        auto subtopics = findNestedSubtopics(generalTopics, indices);
+                        if (!subtopics.empty()) {
+                            createTree(selectedMenu->getChildren()[types], subtopics, 1);
+                            selectedMenu = selectedMenu->getChildren()[types];
+                            selectedMenuChildren = selectedMenu->getChildren();
+                        } else {
+                            indices.pop_back();
+                        }
+                    } else if (event.key.code == sf::Keyboard::Left && selectedMenu != mainMenu) {
+                        selectedMenu->removeAllChildren();
+                        selectedMenu = selectedMenu->getParent();
+                        selectedMenuChildren = selectedMenu->getChildren();
+                        indices.pop_back();
+                    }
+                    break;
 
-            // Handle keyboard input for navigation and interaction
-            if (event.type == sf::Event::KeyPressed) {
-                change = true; // Screen will need an update
-                switch (event.key.code) {
-                    case sf::Keyboard::Up:
-                        // Navigate to the previous menu item (wrapping around if necessary)
-                        selectedMenuChildren[types]->setFontSize(30);  // Reset font size of the current item
-                        types = (types - 1 + selectedMenuChildren.size()) % selectedMenuChildren.size(); // Wrap index
-                        selectedMenuChildren[types]->setFontSize(38);  // Highlight new item
-                        break;
-                    case sf::Keyboard::Down:
-                        // Navigate to the next menu item (wrapping around if necessary)
-                        selectedMenuChildren[types]->setFontSize(30);  // Reset font size of the current item
-                        types = (types + 1) % selectedMenuChildren.size(); // Wrap index
-                        selectedMenuChildren[types]->setFontSize(38);  // Highlight new item
-                        break;
-                    case sf::Keyboard::Enter:
-                        // Enter the selected submenu if it's not a leaf node
-                        if (!selectedMenu->isLeaf()) {
-                            selectedMenuChildren[types]->setFontSize(30); // Reset font size
-                            indices.push_back(types); // Add current selection to path
-                            auto subtopics = findNestedSubtopics(generalTopics, indices);
-                            if (!subtopics.empty()) {
-                                createTree(selectedMenu->getChildren()[types], subtopics, 1); // Build submenu
-                                selectedMenu = selectedMenu->getChildren()[types]; // Navigate to submenu
-                                selectedMenuChildren = selectedMenu->getChildren(); // Update children
-                            } else {
-                                std::cerr << "No subtopics found." << std::endl;
-                                indices.pop_back(); // Remove invalid path step
-                            }
-                        }
-                        break;
-                    case sf::Keyboard::Left:
-                        // Go back to the parent menu if not at the root
-                        if (selectedMenu != mainMenu) {
-                            selectedMenu->removeAllChildren(); // Clear current submenu
-                            selectedMenu = selectedMenu->getParent(); // Navigate to parent
-                            selectedMenuChildren = selectedMenu->getChildren(); // Update children
-                            indices.pop_back(); // Remove last path step
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                case sf::Event::MouseButtonPressed:
+                    if (event.mouseButton.button == sf::Mouse::Left) {
+                        handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
+                        needsRedraw = true;
+                    }
+                    break;
+
+                default:
+                    break;
             }
         }
 
-        // Redraw the screen if necessary
-        if (change) {
+        // Redraw only if necessary
+        if (needsRedraw) {
             window.clear();
-            background->draw(window); // Draw background
-            cpp150->draw(window);     // Draw icon
-            soundON->draw(window);    // Draw sound ON icon
-            drawSheetFromRoot(selectedMenu, generalScreen, window, 50); // Draw menu
-            window.display(); // Display the rendered frame
-            change = false;   // Reset update flag
+            background->draw(window);
+            cpp150->draw(window);
+            cpp100->draw(window);
+            cpp50->draw(window);
+            soundON->draw(window);
+            drawSheetFromRoot(selectedMenu, generalScreen, window, 50);
+            window.display();
+            needsRedraw = false;
+        } else {
+            // Reduce CPU usage when idle
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 
-    // Clean up dynamically allocated objects
-    delete background;
-    delete cpp150;
-    delete soundON;
-    delete soundOFF;
+    if (musicThread.joinable()) {
+        musicThread.join();
+    }
+    if (movementThread.joinable()) {
+        movementThread.join();
+    }
 
-    return 0; // Indicate successful execution
+    return 0;
 }
 
 
