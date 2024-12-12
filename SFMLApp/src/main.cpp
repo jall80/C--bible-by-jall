@@ -11,6 +11,10 @@
 #include <atomic>
 #include <mutex>
 #include <chrono>
+#include <cstdlib> // Para rand() y srand()
+#include <ctime>   // Para time()
+#include <cmath>
+#include <stdexcept> // For std::runtime_error
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
@@ -27,11 +31,22 @@ const std::string SOUND_OFF_OBJ = "soundOFF";
 const std::string SOUND_OFF_FILE = "soundOFF.png";
 const std::string CPP150_IMAGE_OBJ = "cpp150";
 const std::string CPP150_IMAGE_FILE = "cpp150.png";
-const std::string CPP100_IMAGE_OBJ = "cpp100";
-const std::string CPP100_IMAGE_FILE = "cpp100.png";
-const std::string CPP50_IMAGE_OBJ = "cpp50";
-const std::string CPP50_IMAGE_FILE = "cpp50.png";
+
+
+const std::string CPP100FILL_IMAGE_OBJ = "cpp150";
+const std::string CPP100FILL_IMAGE_FILE = "cpp150.png";
+
+const std::string X100_IMAGE_OBJ = "cpp150";
+const std::string X100_IMAGE_FILE = "cpp150.png";
+
 constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
+
+// For moving object
+
+const int EXTRA_MARGING = 5;
+const int MAX_VELOCITY = EXTRA_MARGING - 1;  //This in order to avoid a segmentation fault, when the object meets the margin
+const float OVERLAP_PERCENTAGE = 0.8; // 0.5 - 1  1 -> no overlap
+const int MIN_SIZE = 50;
 
 //For matrix
 
@@ -72,6 +87,18 @@ std::vector<std::vector<Block>> createGrid(int width, int height, int blockSize)
 }
 
 
+struct StructTextureObject {
+    std::string name;
+    std::string path;
+    uint16_t width;
+    uint16_t height;
+    uint16_t x_position;
+    uint16_t y_position;
+    float velocity_x;
+    float velocity_y;
+};
+
+StructTextureObject iconCpp150 = {"iconCpp150", ICONS_PATH + CPP150_IMAGE_FILE, 150, 150, 0, 0, -1.0f, -2.0f} ;
 
 struct ScreenParams {
     uint16_t width;
@@ -476,6 +503,25 @@ void handleSoundButton(sf::Sprite& soundButton,
     }
 }
 
+// Function to handle the button
+void handleMovingButton(sf::Sprite& movingButton,
+                        sf::Texture& movingONTexture,  
+                        sf::Texture& movingOffTexture, 
+                        std::atomic<bool>& isMovingActive, 
+                        const sf::RenderWindow& window) 
+{
+    sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+    if (movingButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+        if (isMovingActive.load()) {
+            movingButton.setTexture(movingOffTexture); 
+            isMovingActive.store(false);
+        } else {
+            movingButton.setTexture(movingONTexture); 
+            isMovingActive.store(true);
+        }
+    }
+}
+
 
 // Load music
 std::shared_ptr<sf::Music> loadAndPlayMusic() {
@@ -584,10 +630,10 @@ void createTree(const std::shared_ptr<TextObject>& root,
 // Función para detectar si dos objetos están colisionando
 bool isColliding(const TextureObject& obj1, const TextureObject& obj2) {
     // Comprobar si las cajas de los objetos se solapan
-    return !(obj1.getXPosition() + obj1.getWidth()*0.86 < obj2.getXPosition() || 
-             obj1.getXPosition() > obj2.getXPosition() + obj2.getWidth()*0.86 || 
-             obj1.getYPosition() + obj1.getHeight()*0.86 < obj2.getYPosition() || 
-             obj1.getYPosition() > obj2.getYPosition() + obj2.getHeight()*0.86);
+    return !(obj1.getXPosition() + obj1.getWidth()*OVERLAP_PERCENTAGE < obj2.getXPosition() || 
+             obj1.getXPosition() > obj2.getXPosition() + obj2.getWidth()*OVERLAP_PERCENTAGE || 
+             obj1.getYPosition() + obj1.getHeight()*OVERLAP_PERCENTAGE < obj2.getYPosition() || 
+             obj1.getYPosition() > obj2.getYPosition() + obj2.getHeight()*OVERLAP_PERCENTAGE);
 }
 
 
@@ -615,10 +661,10 @@ void moveObjects(std::vector<TextureObject*>& objects,
                 posY += velocity_y;  // Movimiento en Y
 
                 // Verificar colisiones con los límites de la ventana
-                if (posX <= 0 || posX + obj->getWidth() >= window.getSize().x) {
+                if (posX <= EXTRA_MARGING || posX + obj->getWidth() >= window.getSize().x - EXTRA_MARGING) {
                     obj->setVelocityX(-velocity_x); // Invertir velocidad en X
                 }
-                if (posY <= 0 || posY + obj->getHeight() >= window.getSize().y) {
+                if (posY <= EXTRA_MARGING || posY + obj->getHeight() >= window.getSize().y - EXTRA_MARGING) {
                     obj->setVelocityY(-velocity_y); // Invertir velocidad en Y
                 }
 
@@ -651,7 +697,70 @@ void moveObjects(std::vector<TextureObject*>& objects,
     }
 }
 
+bool isFarEnough(const std::vector<TextureObject*>& objects, float x, float y, float minDistance) {
+    for (const auto& obj : objects) {
+        float dx = obj->getXPosition() - x;
+        float dy = obj->getYPosition() - y;
+        if (std::sqrt(dx * dx + dy * dy) < minDistance) {
+            return false;
+        }
+    }
+    return true;
+}
 
+std::vector<TextureObject*> createMovingObjects(int n, std::vector<std::vector<Block>> grid, StructTextureObject object) {
+    if (n <= 0) return {};
+
+    if (n > 10) {
+        throw std::runtime_error("Max num of moving objects is 10. Got: " + std::to_string(n));
+    }
+
+    if (MIN_SIZE * 2 > object.width) {
+        throw std::runtime_error(
+        "The size of the square object must be at least double the minimum size. "
+        "Got: " + std::to_string(object.width) + ", required: " + std::to_string(MIN_SIZE * 2));
+    }
+
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    std::vector<TextureObject*> movingObjectPointer;
+    const float minDistance = object.width;
+
+    for (int i = 0; i < n; ++i) {
+        int size = MIN_SIZE + (std::rand() % (object.width - (MIN_SIZE - 1))); // Tamaño entre MIN_SIZE y object.width
+        float posX, posY;
+        bool validPosition = false;
+
+        while (!validPosition) {
+            posX = grid[8][16].x + (std::rand() % (grid[100][60].x - grid[8][16].x + 1));
+            posY = grid[8][16].y + (std::rand() % (grid[100][60].y - grid[8][16].y + 1));
+
+            if (isFarEnough(movingObjectPointer, posX, posY, minDistance)) {
+                validPosition = true;
+            }
+        }
+
+        std::unique_ptr<TextureObject> texture = std::make_unique<TextureObject>(
+            object.name, size, size, posX, posY, object.velocity_x, object.velocity_y);
+
+        if (!texture->loadTexture(object.path)) {
+            for (auto obj : movingObjectPointer) {
+                delete obj;
+            }
+            return {}; // Limpia y retorna vacío si falla
+        }
+
+        movingObjectPointer.push_back(texture.release());
+    }
+    return movingObjectPointer;
+}
+
+void drawObjects(const std::vector<TextureObject*>& objects, sf::RenderWindow& window) {
+    for (auto* obj : objects) {
+        if (obj) {
+            obj->draw(window);
+        }
+    }
+}
 
 uint16_t initAndStartMainWindowLoop() {
     // Initialize the grid once
@@ -664,20 +773,18 @@ uint16_t initAndStartMainWindowLoop() {
     std::unique_ptr<TextureObject> background = std::make_unique<TextureObject>(BACKGROUND_IMAGE_OBJ, generalScreen.width, generalScreen.height, 0, 0);
     if (!background->loadTexture(IMAGES_PATH + BACKGROUND_IMAGE_FILE)) return -1;
 
-    std::unique_ptr<TextureObject> cpp150 = std::make_unique<TextureObject>(CPP150_IMAGE_OBJ, 150, 150, grid[8][36].x, grid[8][36].y, 1.0f, 1.0f);
-    if (!cpp150->loadTexture(ICONS_PATH + CPP150_IMAGE_FILE)) return -1;
-
-    std::unique_ptr<TextureObject> cpp100 = std::make_unique<TextureObject>(CPP100_IMAGE_OBJ, 100, 100, grid[32][10].x, grid[32][10].y, 1.0f, -1.0f);
-    if (!cpp100->loadTexture(ICONS_PATH + CPP100_IMAGE_FILE)) return -1;
-
-    std::unique_ptr<TextureObject> cpp50 = std::make_unique<TextureObject>(CPP50_IMAGE_OBJ, 50, 50, grid[64][56].x, grid[64][56].y, -1.0f, -1.0f);
-    if (!cpp50->loadTexture(ICONS_PATH + CPP50_IMAGE_FILE)) return -1;
-
     std::unique_ptr<TextureObject> soundON = std::make_unique<TextureObject>(SOUND_ON_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
     if (!soundON->loadTexture(ICONS_PATH + SOUND_ON_FILE)) return -1;
 
     std::unique_ptr<TextureObject> soundOFF = std::make_unique<TextureObject>(SOUND_OFF_OBJ, 50, 50, grid[122][1].x, grid[122][1].y);
     if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) return -1;
+
+
+    std::unique_ptr<TextureObject> movingON = std::make_unique<TextureObject>(CPP100FILL_IMAGE_OBJ, 50, 50, grid[122][4].x, grid[122][4].y);
+    if (!movingON->loadTexture(ICONS_PATH + CPP100FILL_IMAGE_FILE)) return -1;
+
+    std::unique_ptr<TextureObject> movingOFF = std::make_unique<TextureObject>(X100_IMAGE_OBJ, 50, 50, grid[122][4].x, grid[122][4].y);
+    if (!movingOFF->loadTexture(ICONS_PATH + X100_IMAGE_FILE)) return -1;
 
     // Initialize menu and hierarchical tree
     auto mainMenu = std::make_shared<TextObject>(
@@ -693,17 +800,17 @@ uint16_t initAndStartMainWindowLoop() {
     auto selectedMenu = mainMenu;
     auto selectedMenuChildren = selectedMenu->getChildren();
     int8_t types = 0;
-
-
-    std::vector<TextureObject*> rawPointers = {cpp150.get(), cpp100.get(), cpp50.get()};
-
+    std::atomic<bool> needsRedraw(true);
+    std::atomic<bool> isMovingActive(true);
     // Declarar el thread, mutex y atomic flag
     std::thread movementThread;
     std::mutex positionMutex;
-    std::atomic<bool> needsRedraw(true);
 
-    // Llamar a la función moveObjects en un thread
-    movementThread = std::thread(moveObjects, std::ref(rawPointers), std::cref(window), std::ref(needsRedraw), std::ref(positionMutex));
+    std::vector<TextureObject*> movingObjectPointer = createMovingObjects(8, grid, iconCpp150);
+
+
+    //Llamar a la función moveObjects en un thread
+    movementThread = std::thread(moveObjects, std::ref(movingObjectPointer), std::cref(window), std::ref(needsRedraw), std::ref(positionMutex));
 
     // Thread for music management
     std::thread musicThread([&]() {
@@ -757,7 +864,8 @@ uint16_t initAndStartMainWindowLoop() {
 
                 case sf::Event::MouseButtonPressed:
                     if (event.mouseButton.button == sf::Mouse::Left) {
-                        handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
+                        handleSoundButton(movingOFF->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
+                        //handleMovingButton(movingOFF->getTextureSprite(), movingON->getTexture(), movingOFF->getTexture() , isMovingActive, window) 
                         needsRedraw = true;
                     }
                     break;
@@ -771,10 +879,9 @@ uint16_t initAndStartMainWindowLoop() {
         if (needsRedraw) {
             window.clear();
             background->draw(window);
-            cpp150->draw(window);
-            cpp100->draw(window);
-            cpp50->draw(window);
+            drawObjects(movingObjectPointer, window);
             soundON->draw(window);
+            //movingON->draw(window);
             drawSheetFromRoot(selectedMenu, generalScreen, window, 50);
             window.display();
             needsRedraw = false;
