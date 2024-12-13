@@ -15,6 +15,9 @@
 #include <ctime>   // Para time()
 #include <cmath>
 #include <stdexcept> // For std::runtime_error
+#include <condition_variable>
+#include <functional> // Necesario
+
 
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
@@ -36,8 +39,8 @@ const std::string CPP150_IMAGE_FILE = "cpp150.png";
 const std::string CPP100FILL_IMAGE_OBJ = "cpp150";
 const std::string CPP100FILL_IMAGE_FILE = "cpp150.png";
 
-const std::string X100_IMAGE_OBJ = "cpp150";
-const std::string X100_IMAGE_FILE = "cpp150.png";
+const std::string X100_IMAGE_OBJ = "Xicon100";
+const std::string X100_IMAGE_FILE = "Xicon100.png";
 
 constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
 
@@ -193,6 +196,83 @@ std::vector<LineTextParams> generalTopics = {
 //////////////////////////////////////
 
 //////////////////////////////////
+
+class ThreadController {
+public:
+    ThreadController() : stopFlag(false), pauseFlag(false) {}
+
+    // Iniciar el hilo con la función proporcionada
+    void start(std::function<void()> func) {
+        stopFlag = false;
+        pauseFlag = false;
+        controlledThread = std::thread([this, func]() {
+            while (!stopFlag) {
+                // Manejo de pausa: se espera si está en pausa
+                {
+                    std::unique_lock<std::mutex> lock(controlMutex);
+                    pauseCondition.wait(lock, [this]() { return !pauseFlag || stopFlag; });
+                }
+
+                // Revisar si se solicitó detener el hilo
+                if (stopFlag) break;
+
+                // Ejecutar la función proporcionada
+                func();
+            }
+        });
+    }
+
+    // Pausar el hilo
+    void pause() {
+        {
+            std::lock_guard<std::mutex> lock(controlMutex);
+            pauseFlag = true;  // Poner el hilo en pausa
+        }
+        pauseCondition.notify_all();  // Notificar al hilo
+    }
+
+    // Reanudar el hilo
+    void resume() {
+        {
+            std::lock_guard<std::mutex> lock(controlMutex);
+            pauseFlag = false;  // Reanudar el hilo
+        }
+        pauseCondition.notify_all();  // Notificar al hilo que se reanude
+    }
+
+    // Detener el hilo
+    void stop() {
+        {
+            std::lock_guard<std::mutex> lock(controlMutex);
+            stopFlag = true;  // Detener el hilo
+            pauseFlag = false;  // Asegurar que no esté en pausa
+        }
+        pauseCondition.notify_all();  // Desbloquear el hilo si estaba esperando
+        if (controlledThread.joinable()) {
+            controlledThread.join();  // Esperar a que el hilo termine
+        }
+    }
+
+    // Verificar si el hilo está pausado
+    bool isPaused() const {
+        return pauseFlag.load();
+    }
+
+    std::atomic<bool>& getPauseFlag() {
+    return pauseFlag;
+    }
+
+    ~ThreadController() {
+        stop();
+    }
+
+private:
+    std::thread controlledThread;
+    std::mutex controlMutex;
+    std::condition_variable pauseCondition;
+    std::atomic<bool> stopFlag;  // Cambiado a atomic para evitar problemas de sincronización
+    std::atomic<bool> pauseFlag;  // Cambiado a atomic
+};
 
 class BaseObject {
 protected:
@@ -479,6 +559,70 @@ std::vector<LineTextParams> findNestedSubtopics(
 }
 
 
+bool isFarEnough(const std::vector<TextureObject*>& objects, float x, float y, float minDistance) {
+    for (const auto& obj : objects) {
+        float dx = obj->getXPosition() - x;
+        float dy = obj->getYPosition() - y;
+        if (std::sqrt(dx * dx + dy * dy) < minDistance) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::vector<TextureObject*> createMovingObjects(int n, std::vector<std::vector<Block>> grid, StructTextureObject object) {
+    if (n <= 0) return {};
+
+    if (n > 10) {
+        throw std::runtime_error("Max num of moving objects is 10. Got: " + std::to_string(n));
+    }
+
+    if (MIN_SIZE * 2 > object.width) {
+        throw std::runtime_error(
+        "The size of the square object must be at least double the minimum size. "
+        "Got: " + std::to_string(object.width) + ", required: " + std::to_string(MIN_SIZE * 2));
+    }
+
+    std::srand(static_cast<unsigned>(std::time(nullptr)));
+    std::vector<TextureObject*> movingObjectPointer;
+    const float minDistance = object.width;
+
+    for (int i = 0; i < n; ++i) {
+        int size = MIN_SIZE + (std::rand() % (object.width - (MIN_SIZE - 1))); // Tamaño entre MIN_SIZE y object.width
+        float posX, posY;
+        bool validPosition = false;
+
+        while (!validPosition) {
+            posX = grid[8][16].x + (std::rand() % (grid[100][60].x - grid[8][16].x + 1));
+            posY = grid[8][16].y + (std::rand() % (grid[100][60].y - grid[8][16].y + 1));
+
+            if (isFarEnough(movingObjectPointer, posX, posY, minDistance)) {
+                validPosition = true;
+            }
+        }
+
+        std::unique_ptr<TextureObject> texture = std::make_unique<TextureObject>(
+            object.name, size, size, posX, posY, object.velocity_x, object.velocity_y);
+
+        if (!texture->loadTexture(object.path)) {
+            for (auto obj : movingObjectPointer) {
+                delete obj;
+            }
+            return {}; // Limpia y retorna vacío si falla
+        }
+
+        movingObjectPointer.push_back(texture.release());
+    }
+    return movingObjectPointer;
+}
+
+void drawObjects(const std::vector<TextureObject*>& objects, sf::RenderWindow& window) {
+    for (auto* obj : objects) {
+        if (obj) {
+            obj->draw(window);
+        }
+    }
+}
 
 
 // Function to handle the button
@@ -503,24 +647,42 @@ void handleSoundButton(sf::Sprite& soundButton,
     }
 }
 
-// Function to handle the button
 void handleMovingButton(sf::Sprite& movingButton,
                         sf::Texture& movingONTexture,  
                         sf::Texture& movingOffTexture, 
-                        std::atomic<bool>& isMovingActive, 
-                        const sf::RenderWindow& window) 
+                        const sf::RenderWindow& window,
+                        ThreadController& threadController,
+                        std::vector<TextureObject*>& movingObjectPointer,
+                        std::vector<std::vector<Block>>& grid,           
+                        StructTextureObject& object)                  
 {
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
     if (movingButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
-        if (isMovingActive.load()) {
-            movingButton.setTexture(movingOffTexture); 
-            isMovingActive.store(false);
-        } else {
+        if (threadController.isPaused()) {
+            // Limpia el vector antes de asignar nuevos objetos
+            for (auto* obj : movingObjectPointer) {
+                delete obj; // Libera la memoria de cada puntero
+            }
+            movingObjectPointer.clear();
+
+            // Crea nuevos objetos y actualiza el vector
+            movingObjectPointer = createMovingObjects(8, grid, object);
             movingButton.setTexture(movingONTexture); 
-            isMovingActive.store(true);
+            threadController.resume(); // Reanudar el hilo si está pausado
+        } else {
+            // Limpia el vector para destruir los objetos actuales
+            for (auto* obj : movingObjectPointer) {
+                delete obj; // Libera la memoria de cada puntero
+            }
+            movingObjectPointer.clear();
+
+            movingButton.setTexture(movingOffTexture); 
+            threadController.pause(); // Pausar el hilo si está corriendo
         }
     }
 }
+
 
 
 // Load music
@@ -640,11 +802,15 @@ bool isColliding(const TextureObject& obj1, const TextureObject& obj2) {
 void moveObjects(std::vector<TextureObject*>& objects, 
                  const sf::RenderWindow& window, 
                  std::atomic<bool>& needsRedraw, 
-                 std::mutex& positionMutex) {
-    while (window.isOpen()) {
-        {
-            std::lock_guard<std::mutex> lock(positionMutex);
+                 std::atomic<bool>& isPaused) {  // Flag de pausa
+    try {
+        while (!isPaused.load() && window.isOpen()) {
+            if (isPaused.load()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Espera mientras esté pausado
+                continue; // Salta al siguiente ciclo si está pausado
+            }
 
+            // Realizar el movimiento de los objetos sin tocar la ventana
             for (size_t i = 0; i < objects.size(); ++i) {
                 auto* obj = objects[i];
 
@@ -668,7 +834,6 @@ void moveObjects(std::vector<TextureObject*>& objects,
                     obj->setVelocityY(-velocity_y); // Invertir velocidad en Y
                 }
 
-
                 // Actualizar la posición del objeto
                 obj->setXPosition(posX);
                 obj->setYPosition(posY);
@@ -685,82 +850,20 @@ void moveObjects(std::vector<TextureObject*>& objects,
                         obj->setVelocityY(-velocity_y);
                         otherObj->setVelocityX(-otherObj->getVelocityX());
                         otherObj->setVelocityY(-otherObj->getVelocityY());
-
                     }
                 }
             }
-        }
 
-        // Indicar que se necesita redibujar la ventana
-        needsRedraw.store(true);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // Indicar que se necesita redibujar la ventana
+            needsRedraw.store(true);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Pausa controlada para evitar bloqueo
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error en el hilo de movimiento: " << e.what() << std::endl;
     }
 }
 
-bool isFarEnough(const std::vector<TextureObject*>& objects, float x, float y, float minDistance) {
-    for (const auto& obj : objects) {
-        float dx = obj->getXPosition() - x;
-        float dy = obj->getYPosition() - y;
-        if (std::sqrt(dx * dx + dy * dy) < minDistance) {
-            return false;
-        }
-    }
-    return true;
-}
 
-std::vector<TextureObject*> createMovingObjects(int n, std::vector<std::vector<Block>> grid, StructTextureObject object) {
-    if (n <= 0) return {};
-
-    if (n > 10) {
-        throw std::runtime_error("Max num of moving objects is 10. Got: " + std::to_string(n));
-    }
-
-    if (MIN_SIZE * 2 > object.width) {
-        throw std::runtime_error(
-        "The size of the square object must be at least double the minimum size. "
-        "Got: " + std::to_string(object.width) + ", required: " + std::to_string(MIN_SIZE * 2));
-    }
-
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::vector<TextureObject*> movingObjectPointer;
-    const float minDistance = object.width;
-
-    for (int i = 0; i < n; ++i) {
-        int size = MIN_SIZE + (std::rand() % (object.width - (MIN_SIZE - 1))); // Tamaño entre MIN_SIZE y object.width
-        float posX, posY;
-        bool validPosition = false;
-
-        while (!validPosition) {
-            posX = grid[8][16].x + (std::rand() % (grid[100][60].x - grid[8][16].x + 1));
-            posY = grid[8][16].y + (std::rand() % (grid[100][60].y - grid[8][16].y + 1));
-
-            if (isFarEnough(movingObjectPointer, posX, posY, minDistance)) {
-                validPosition = true;
-            }
-        }
-
-        std::unique_ptr<TextureObject> texture = std::make_unique<TextureObject>(
-            object.name, size, size, posX, posY, object.velocity_x, object.velocity_y);
-
-        if (!texture->loadTexture(object.path)) {
-            for (auto obj : movingObjectPointer) {
-                delete obj;
-            }
-            return {}; // Limpia y retorna vacío si falla
-        }
-
-        movingObjectPointer.push_back(texture.release());
-    }
-    return movingObjectPointer;
-}
-
-void drawObjects(const std::vector<TextureObject*>& objects, sf::RenderWindow& window) {
-    for (auto* obj : objects) {
-        if (obj) {
-            obj->draw(window);
-        }
-    }
-}
 
 uint16_t initAndStartMainWindowLoop() {
     // Initialize the grid once
@@ -780,10 +883,10 @@ uint16_t initAndStartMainWindowLoop() {
     if (!soundOFF->loadTexture(ICONS_PATH + SOUND_OFF_FILE)) return -1;
 
 
-    std::unique_ptr<TextureObject> movingON = std::make_unique<TextureObject>(CPP100FILL_IMAGE_OBJ, 50, 50, grid[122][4].x, grid[122][4].y);
+    std::unique_ptr<TextureObject> movingON = std::make_unique<TextureObject>(CPP100FILL_IMAGE_OBJ, 50, 50, grid[122][8].x, grid[122][8].y);
     if (!movingON->loadTexture(ICONS_PATH + CPP100FILL_IMAGE_FILE)) return -1;
 
-    std::unique_ptr<TextureObject> movingOFF = std::make_unique<TextureObject>(X100_IMAGE_OBJ, 50, 50, grid[122][4].x, grid[122][4].y);
+    std::unique_ptr<TextureObject> movingOFF = std::make_unique<TextureObject>(X100_IMAGE_OBJ, 50, 50, grid[122][8].x, grid[122][8].y);
     if (!movingOFF->loadTexture(ICONS_PATH + X100_IMAGE_FILE)) return -1;
 
     // Initialize menu and hierarchical tree
@@ -800,27 +903,20 @@ uint16_t initAndStartMainWindowLoop() {
     auto selectedMenu = mainMenu;
     auto selectedMenuChildren = selectedMenu->getChildren();
     int8_t types = 0;
-    std::atomic<bool> needsRedraw(true);
-    std::atomic<bool> isMovingActive(true);
-    // Declarar el thread, mutex y atomic flag
-    std::thread movementThread;
-    std::mutex positionMutex;
 
+    std::atomic<bool> needsRedraw(true);
+
+    // puedo destruirlos y volverlos a contruir
     std::vector<TextureObject*> movingObjectPointer = createMovingObjects(8, grid, iconCpp150);
 
 
-    //Llamar a la función moveObjects en un thread
-    movementThread = std::thread(moveObjects, std::ref(movingObjectPointer), std::cref(window), std::ref(needsRedraw), std::ref(positionMutex));
-
-    // Thread for music management
-    std::thread musicThread([&]() {
-        while (window.isOpen()) {
-            // Simulate music management tasks
-            if (isMusicPlaying) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        }
+    ThreadController movementThread;
+    
+    movementThread.start([&]() {
+    moveObjects(std::ref(movingObjectPointer), std::cref(window), std::ref(needsRedraw), std::ref(movementThread.getPauseFlag()));
     });
+
+
 
     // Main event loop
     while (window.isOpen()) {
@@ -864,8 +960,8 @@ uint16_t initAndStartMainWindowLoop() {
 
                 case sf::Event::MouseButtonPressed:
                     if (event.mouseButton.button == sf::Mouse::Left) {
-                        handleSoundButton(movingOFF->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
-                        //handleMovingButton(movingOFF->getTextureSprite(), movingON->getTexture(), movingOFF->getTexture() , isMovingActive, window) 
+                        handleSoundButton(soundON->getTextureSprite(), soundON->getTexture(), soundOFF->getTexture(), *music, isMusicPlaying, window);
+                        handleMovingButton(movingON->getTextureSprite(), movingON->getTexture(), movingOFF->getTexture(), window, movementThread, movingObjectPointer, grid, iconCpp150);
                         needsRedraw = true;
                     }
                     break;
@@ -879,9 +975,11 @@ uint16_t initAndStartMainWindowLoop() {
         if (needsRedraw) {
             window.clear();
             background->draw(window);
-            drawObjects(movingObjectPointer, window);
+            if (!movementThread.isPaused()){
+                drawObjects(movingObjectPointer, window);
+            }
             soundON->draw(window);
-            //movingON->draw(window);
+            movingON->draw(window);
             drawSheetFromRoot(selectedMenu, generalScreen, window, 50);
             window.display();
             needsRedraw = false;
@@ -891,12 +989,7 @@ uint16_t initAndStartMainWindowLoop() {
         }
     }
 
-    if (musicThread.joinable()) {
-        musicThread.join();
-    }
-    if (movementThread.joinable()) {
-        movementThread.join();
-    }
+    movementThread.stop();
 
     return 0;
 }
