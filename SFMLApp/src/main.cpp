@@ -36,8 +36,8 @@ const std::string CPP150_IMAGE_OBJ = "cpp150";
 const std::string CPP150_IMAGE_FILE = "cpp150.png";
 
 
-const std::string CPP100FILL_IMAGE_OBJ = "cpp150";
-const std::string CPP100FILL_IMAGE_FILE = "cpp150.png";
+const std::string CPP100FILL_IMAGE_OBJ = "cpp100filled";
+const std::string CPP100FILL_IMAGE_FILE = "cpp100filled.png";
 
 const std::string X100_IMAGE_OBJ = "Xicon100";
 const std::string X100_IMAGE_FILE = "Xicon100.png";
@@ -56,6 +56,12 @@ const int MIN_SIZE = 50;
 const int SCREEN_WIDTH = 1920;
 const int SCREEN_HEIGHT = 1080;
 const int BLOCK_SIZE = 15;
+
+//Font sizes
+
+const int NORMAL_FONT = 30;
+const float FONT_RESIZE = 1.27;
+const int BIG_FONT = int(NORMAL_FONT * FONT_RESIZE);
 
 // Calculate the number of rows and columns
 const int rows = SCREEN_HEIGHT / BLOCK_SIZE;
@@ -147,51 +153,101 @@ struct LineTextParams {
 //{"Floating-pointTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 40, true},
 
 std::vector<LineTextParams> TopicFloatingpointTypes = {
-    {"Description", 0, 0, CRTGreen, "1. Description", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
-    {"Example", 0, 0, CRTGreen, "2. Example", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
-    {"Practice", 0, 0, CRTGreen, "3. Practice", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
+    {"Description", 0, 0, CRTGreen, "Description", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"Example", 0, 0, CRTGreen, "Example", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"Practice", 0, 0, CRTGreen, "Practice", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
 };
 
 //   {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> TopicIntegralTypes = {
-    {"Description", 0, 0, CRTGreen, "1. Description gg", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
-    {"Example", 0, 0, CRTGreen, "2. Example gg", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
-    {"Practice", 0, 0, CRTGreen, "3. Practice gg", RETRO_FONTH_PATH, 30, false, std::nullopt, 3},
+    {"Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
 };
-
 
 //{"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
 
 std::vector<LineTextParams> introductionTopics = {
-    {"Topic1-1", 0, 0, CRTGreen, "1. History and Overview of C++", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
-    {"Topic1-2", 0, 0, CRTGreen, "2. Setting Up the Development Environment", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
-    {"Topic1-3", 0, 0, CRTGreen, "3. Basic Syntax and Structure", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
+    {"Topic1-1", 0, 0, CRTGreen, "History and Overview of C++", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
+    {"Topic1-2", 0, 0, CRTGreen, "Setting Up the Development Environment", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
+    {"Topic1-3", 0, 0, CRTGreen, "Basic Syntax and Structure", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
 };
 
 //{"MenuDataTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> dataTypesTopics = {
-    {"Topic2-1", 0, 0, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 30, false, TopicIntegralTypes, 2},
-    {"Topic2-2", 0, 0, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 30, false, TopicFloatingpointTypes, 2},
-    {"Topic2-3", 0, 0, CRTGreen, "3. Character Types", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
-    {"Topic2-4", 0, 0, CRTGreen, "4. Boolean Type", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
-    {"Topic2-5", 0, 0, CRTGreen, "5. Void Type", RETRO_FONTH_PATH, 30, false, std::nullopt, 2},
+    {"Topic2-1", 0, 0, CRTGreen, "Integral Types", RETRO_FONTH_PATH, NORMAL_FONT, false, TopicIntegralTypes, 2},
+    {"Topic2-2", 0, 0, CRTGreen, "Floating-point Types", RETRO_FONTH_PATH, NORMAL_FONT, false, TopicFloatingpointTypes, 2},
+    {"Topic2-3", 0, 0, CRTGreen, "Character Types", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
+    {"Topic2-4", 0, 0, CRTGreen, "Boolean Type", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
+    {"Topic2-5", 0, 0, CRTGreen, "Void Type", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
 };
 
 LineTextParams mainMenuParams = {"mainMenu", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "MAIN MENU", RETRO_FONTH_PATH, 40, true};
 
 std::vector<LineTextParams> generalTopics = {
-    {"Topic1", 0, 0, CRTGreen, "1. Introduction to C++ Programming", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic2", 0, 0, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 30, false, dataTypesTopics, 1},
-    {"Topic3", 0, 0, CRTGreen, "3. Control Structures in C++", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic4", 0, 0, CRTGreen, "4. Functions and Parameters in C++", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic5", 0, 0, CRTGreen, "5. Object-Oriented Programming Concepts", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic6", 0, 0, CRTGreen, "6. Memory Management", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic7", 0, 0, CRTGreen, "7. Standard Template Library (STL)", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic8", 0, 0, CRTGreen, "8. File Handling in C++", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic9", 0, 0, CRTGreen, "9. Error Handling and Debugging", RETRO_FONTH_PATH, 30, false, introductionTopics, 1},
-    {"Topic10", 0, 0, CRTGreen, "10. Advanced Topics in C++", RETRO_FONTH_PATH, 30, false, introductionTopics, 1}
+    {"Topic1", 0, 0, CRTGreen, "Introduction to C++ Programming", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic2", 0, 0, CRTGreen, "Data Types in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1},
+    {"Topic3", 0, 0, CRTGreen, "Control Structures in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic4", 0, 0, CRTGreen, "Functions and Parameters in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic5", 0, 0, CRTGreen, "Object-Oriented Programming Concepts", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic6", 0, 0, CRTGreen, "Memory Management", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic7", 0, 0, CRTGreen, "Standard Template Library (STL)", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic8", 0, 0, CRTGreen, "File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic9", 0, 0, CRTGreen, "Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic10", 0, 0, CRTGreen, "Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+
+
+    {"Topic11", 0, 0, CRTGreen, "GGG Introduction to C++ Programming", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic12", 0, 0, CRTGreen, "GGG Data Types in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1},
+    {"Topic13", 0, 0, CRTGreen, "GGG Control Structures in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic14", 0, 0, CRTGreen, "GGG Functions and Parameters in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic15", 0, 0, CRTGreen, "GGGG Object-Oriented Programming Concepts", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic16", 0, 0, CRTGreen, "GGG Memory Management", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic17", 0, 0, CRTGreen, "GGG Standard Template Library (STL)", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic18", 0, 0, CRTGreen, "GGG File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic19", 0, 0, CRTGreen, "GGG Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic20", 0, 0, CRTGreen, "GGG Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1}
 };
 
+
+void enumerateTopics(std::vector<LineTextParams>& topics, int depth = 0) {
+    for (size_t i = 0; i < topics.size(); ++i) {
+        std::ostringstream numberedText;
+        numberedText << std::string(depth * 2, ' ') << (i + 1) << ". " << topics[i].text;
+        topics[i].text = numberedText.str();
+
+        // Si hay subtemas, enumerarlos recursivamente
+        if (topics[i].subtopics) {
+            enumerateTopics(*topics[i].subtopics, depth + 1);
+        }
+    }
+}
+
+
+// Función para eliminar temas que excedan el tamaño máximo permitido
+void filterTopicsBySize(std::vector<LineTextParams>& topics, const ScreenParams& screenParams) {
+    const uint16_t maxWidth = screenParams.width - general4BlocksX.blockX2 - screenParams.leftMargin;
+
+    auto fitsWithinScreen = [&](const LineTextParams& topic) {
+        // Calcular el ancho estimado del texto en píxeles
+        uint16_t estimatedWidth = topic.text.size() * (topic.textSize * 0.9) * FONT_RESIZE;
+        return estimatedWidth <= maxWidth;
+    };
+
+    topics.erase(std::remove_if(topics.begin(), topics.end(), [&](LineTextParams& topic) {
+        // Filtrar subtemas recursivamente
+        if (topic.subtopics) {
+            filterTopicsBySize(*topic.subtopics, screenParams);
+        }
+
+        // Si el tema no cabe en la pantalla, lanzar un error
+        if (!fitsWithinScreen(topic)) {
+            throw std::runtime_error("Topic '" + topic.name + "' exceeds the maximum width of " + std::to_string(maxWidth) + " pixels.");
+        }
+
+        return false; // No se eliminan temas aquí, solo se valida su tamaño
+    }), topics.end());
+}
 
 //////////////////////////////////////
 
@@ -378,7 +434,6 @@ public:
 };
 
 
-
 class TextObject : public BaseObject {
 private:
     std::array<uint16_t, 3> color;   // RGB color
@@ -500,6 +555,11 @@ public:
 
     bool isLeaf() const {
     return children.empty();
+    }
+
+    // Get the width of the text
+    float getTextWidth() const {
+        return textObj.getLocalBounds().width;
     }
 
     // Método para eliminar todos los hijos
@@ -624,7 +684,6 @@ void drawObjects(const std::vector<TextureObject*>& objects, sf::RenderWindow& w
     }
 }
 
-
 // Function to handle the button
 void handleSoundButton(sf::Sprite& soundButton, 
                        sf::Texture& soundOnTexture, 
@@ -684,7 +743,6 @@ void handleMovingButton(sf::Sprite& movingButton,
 }
 
 
-
 // Load music
 std::shared_ptr<sf::Music> loadAndPlayMusic() {
     auto music = std::make_shared<sf::Music>();
@@ -697,9 +755,9 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
     return music;
 }
 
-
+//drawMenuFromRoot
 // Función para dibujar los nodos existentes, comenzando desde un nodo raíz
-void drawSheetFromRoot(
+void drawMenuFromRoot(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window,
@@ -724,13 +782,28 @@ void drawSheetFromRoot(
     // Dibujar los hijos del nodo raíz
     const auto& children = rootNode->getChildren();
     for (const auto& child : children) {
-        // Calcular la posición centrada para cada hijo
+        // Verificar si la posición del próximo nodo excede el margen inferior
+        if (next_line + step_size > screen.height - screen.bottomMargin) {
+            std::cerr << "Warning: Node exceeds bottom margin. Stopping rendering." << std::endl;
+            break;
+        }
+
         uint16_t child_x_position = general4BlocksX.blockX2;
+
+        /*
+        // Calcular la posición centrada para cada hijo
+        if (child_x_position + child->getTextWidth() > screen.width) {
+            std::cerr << "Warning: Node exceeds right margin. Skipping node." << std::endl;
+            continue;
+        }
+
+        */
+
         child->setXPosition(child_x_position); // Actualizar posición X del hijo
         child->setYPosition(next_line);        // Actualizar posición Y del hijo
         child->updateTextPosition();
         child->draw(window); // Dibujar el hijo
-        
+
         next_line += step_size; // Avanzar a la siguiente línea
     }
 }
@@ -864,10 +937,12 @@ void moveObjects(std::vector<TextureObject*>& objects,
 }
 
 
-
 uint16_t initAndStartMainWindowLoop() {
     // Initialize the grid once
     auto grid = createGrid(SCREEN_WIDTH, SCREEN_HEIGHT, BLOCK_SIZE);
+
+    filterTopicsBySize(generalTopics, generalScreen);
+    enumerateTopics(generalTopics);
 
     // Create the main application window
     sf::RenderWindow window(sf::VideoMode(generalScreen.width, generalScreen.height), WINDOW_TITLE);
@@ -932,15 +1007,15 @@ uint16_t initAndStartMainWindowLoop() {
                     if (event.key.code == sf::Keyboard::Escape) {
                         window.close();
                     } else if (event.key.code == sf::Keyboard::Up) {
-                        selectedMenuChildren[types]->setFontSize(30);
+                        selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types - 1 + selectedMenuChildren.size()) % selectedMenuChildren.size();
-                        selectedMenuChildren[types]->setFontSize(38);
+                        selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Down) {
-                        selectedMenuChildren[types]->setFontSize(30);
+                        selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types + 1) % selectedMenuChildren.size();
-                        selectedMenuChildren[types]->setFontSize(38);
+                        selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Enter && !selectedMenu->isLeaf()) {
-                        selectedMenuChildren[types]->setFontSize(30);
+                        selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         indices.push_back(types);
                         auto subtopics = findNestedSubtopics(generalTopics, indices);
                         if (!subtopics.empty()) {
@@ -980,7 +1055,7 @@ uint16_t initAndStartMainWindowLoop() {
             }
             soundON->draw(window);
             movingON->draw(window);
-            drawSheetFromRoot(selectedMenu, generalScreen, window, 50);
+            drawMenuFromRoot(selectedMenu, generalScreen, window, 50);
             window.display();
             needsRedraw = false;
         } else {
