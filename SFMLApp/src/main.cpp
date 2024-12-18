@@ -233,6 +233,18 @@ std::vector<LineTextParams> generalTopics = {
     {"Topic17", 0, 0, CRTGreen, "GGG Standard Template Library (STL)", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic18", 0, 0, CRTGreen, "GGG File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic19", 0, 0, CRTGreen, "GGG Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic20", 0, 0, CRTGreen, "GGG Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1},
+
+
+    {"Topic11", 0, 0, CRTGreen, "GGG Introduction to C++ Programming", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic12", 0, 0, CRTGreen, "GGG Data Types in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1},
+    {"Topic13", 0, 0, CRTGreen, "GGG Control Structures in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic14", 0, 0, CRTGreen, "GGG Functions and Parameters in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic15", 0, 0, CRTGreen, "GGGG Object-Oriented Programming Concepts", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic16", 0, 0, CRTGreen, "GGG Memory Management", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic17", 0, 0, CRTGreen, "GGG Standard Template Library (STL)", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic18", 0, 0, CRTGreen, "GGG File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
+    {"Topic19", 0, 0, CRTGreen, "GGG Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic20", 0, 0, CRTGreen, "GGG Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1}
 };
 
@@ -788,27 +800,66 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
     return music;
 }
 
-int predictOverflow(
+
+int findNumberInArrays(const std::vector<int*>& vec, int number) {
+    for (size_t i = 0; i < vec.size(); i++) {
+        int* array = vec[i];  // Obtener el arreglo
+
+        // Buscar el número en el arreglo hasta encontrar el final (-1)
+        for (size_t j = 0; array[j] != -1; j++) {
+            if (array[j] == number) {
+                return array[0];  // Retornar el primer elemento del arreglo donde se encuentra el número
+            }
+        }
+    }
+    return -1;  // Retornar -1 si no se encuentra el número
+}
+
+
+
+int* createIndexArray(const std::vector<int>& indices) {
+    int* indexArray = new int[indices.size()];  // Crear un arreglo dinámico
+    std::copy(indices.begin(), indices.end(), indexArray);  // Copiar los índices en el arreglo
+    return indexArray;
+}
+
+std::vector<int*> predictOverflow(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window
 ) {
     const auto& children = rootNode->getChildren();
-    int count = 0;
-    int next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Initialize next line position
+    std::vector<int*> vec;  // Vector para almacenar los arreglos de índices
+    std::vector<int> currentIndices;  // Lista temporal de índices antes del desbordamiento
+    int next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Inicializar posición de la siguiente línea
 
-    for (const auto& child : children) {
+    for (size_t i = 0; i < children.size(); i++) {
         // Verificar si la posición del próximo nodo excede el margen inferior
         if (next_line > screen.height - screen.bottomMargin) {
-            return count;  // Return the count if overflow will happen
+            currentIndices.push_back(-1);  // sentinel
+            // Guardar el arreglo de índices hasta donde ocurrió el primer desbordamiento
+            int* indexArray = createIndexArray(currentIndices);
+            vec.push_back(indexArray);
+
+            // Reiniciar la lista de índices y la posición de la siguiente línea
+            currentIndices.clear();
+            next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Reiniciar posición de la siguiente línea
         }
-        
-        // Update next line position based on child’s height (assuming child has height)
-        next_line += child->getTextHeight() + LINE_SPACING; 
-        count++;
+
+        // Agregar el índice del nodo actual
+        currentIndices.push_back(i);
+
+        // Actualizar la posición de la siguiente línea en función de la altura del texto
+        next_line += children[i]->getTextHeight() + LINE_SPACING;
     }
 
-    return count;  // Return the total count if no overflow occurs
+    // Verificar si hay elementos no procesados (última sección sin desbordamiento)
+    if (!currentIndices.empty()) {
+        int* indexArray = createIndexArray(currentIndices);
+        vec.push_back(indexArray);
+    }
+
+    return vec;  // Retornar el vector de arreglos de índices
 }
 
 
@@ -818,7 +869,6 @@ void drawMenuFromRoot(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window,
-    bool overflow_flag, // Indicates user reached overflow
     int overflow
 ) {
     if (!rootNode) {
@@ -839,13 +889,8 @@ void drawMenuFromRoot(
 
     uint16_t child_x_position = general4BlocksX.blockX2;
     const auto& children = rootNode->getChildren();
-    int start = 0;
 
-    if (overflow_flag && overflow != 0){
-        start = overflow;
-    }
-
-    for (size_t i = start; i < children.size(); ++i) {
+    for (size_t i = overflow; i < children.size(); ++i) {
 
         if (next_line > screen.height - screen.bottomMargin) {
             break; 
@@ -1036,8 +1081,8 @@ uint16_t initAndStartMainWindowLoop() {
     auto selectedMenuChildren = selectedMenu->getChildren();
     int8_t types = 0;
 
-    bool overflow_flag = false;
-    int overflow = 0;
+
+    std::vector<int*> overflow_list = predictOverflow(selectedMenu, generalScreen, window);
 
     std::atomic<bool> needsRedraw(true);
 
@@ -1070,27 +1115,10 @@ uint16_t initAndStartMainWindowLoop() {
                     } else if (event.key.code == sf::Keyboard::Up) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types - 1 + selectedMenuChildren.size()) % selectedMenuChildren.size();
-                        if (overflow - 1 >= types){
-                            overflow_flag = false; // Indicates user reached the overflow
-                            needsRedraw = true;
-                        }
-                        else if (overflow < types){  // User reached the top of the list and goes to end
-                            overflow_flag = true;
-                            needsRedraw = true;
-                        }
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Down) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types + 1) % selectedMenuChildren.size();
-                        overflow = predictOverflow(selectedMenu, generalScreen, window);
-                        if (overflow == types){
-                            overflow_flag = true;
-                            needsRedraw = true;
-                        }
-                        else if (overflow - 1 > types){  // User reached the end of the list and came back to beggining
-                            overflow_flag = false; 
-                            needsRedraw = true;
-                        }
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Enter && !selectedMenu->isLeaf()) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
@@ -1102,13 +1130,9 @@ uint16_t initAndStartMainWindowLoop() {
                             selectedMenuChildren = selectedMenu->getChildren();
                             types = 0; // Bringing back user to first element of the new deployed list
                             selectedMenuChildren[types]->setFontSize(BIG_FONT);
+                            overflow_list = predictOverflow(selectedMenu, generalScreen, window);
                         } else {
                             indices.pop_back();
-                        }
-                        if (overflow != 0){  //clean overflow variables, when accessing a topic
-                            overflow = 0;
-                            overflow_flag = false; 
-                            needsRedraw = true;
                         }
                     } else if (event.key.code == sf::Keyboard::Left && selectedMenu != mainMenu) {
                         selectedMenu->removeAllChildren();
@@ -1117,11 +1141,7 @@ uint16_t initAndStartMainWindowLoop() {
                         indices.pop_back();
                         types = 0; // Bringing back user to first element of the new deployed list
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
-                        if (overflow != 0){  //clean overflow variables, when coming back to last menu
-                            overflow = 0;
-                            overflow_flag = false; 
-                            needsRedraw = true;
-                        }
+                        overflow_list = predictOverflow(selectedMenu, generalScreen, window);
                     }
                     break;
 
@@ -1147,7 +1167,7 @@ uint16_t initAndStartMainWindowLoop() {
             }
             soundON->draw(window);
             movingON->draw(window);
-            drawMenuFromRoot(selectedMenu, generalScreen, window, overflow_flag, overflow);
+            drawMenuFromRoot(selectedMenu, generalScreen, window, findNumberInArrays(overflow_list, types));
             window.display();
             needsRedraw = false;
         } else {
