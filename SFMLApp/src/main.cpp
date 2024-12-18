@@ -64,7 +64,7 @@ const int NORMAL_FONT = 30;
 const float FONT_RESIZE = 1.27;
 const int BIG_FONT = int(NORMAL_FONT * FONT_RESIZE);
 const int MENU_FONT_SIZE = 40;
-const int LINE_SPACING = 25;
+const int LINE_SPACING = 40;
 
 // Calculate the number of rows and columns
 const int rows = SCREEN_HEIGHT / BLOCK_SIZE;
@@ -233,7 +233,7 @@ std::vector<LineTextParams> generalTopics = {
     {"Topic17", 0, 0, CRTGreen, "GGG Standard Template Library (STL)", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic18", 0, 0, CRTGreen, "GGG File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic19", 0, 0, CRTGreen, "GGG Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
-    {"Topic20", 0, 0, CRTGreen, "GGG Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1}
+    {"Topic20", 0, 0, CRTGreen, "GGG Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1}
 };
 
 
@@ -1070,13 +1070,25 @@ uint16_t initAndStartMainWindowLoop() {
                     } else if (event.key.code == sf::Keyboard::Up) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types - 1 + selectedMenuChildren.size()) % selectedMenuChildren.size();
+                        if (overflow - 1 >= types){
+                            overflow_flag = false; // Indicates user reached the overflow
+                            needsRedraw = true;
+                        }
+                        else if (overflow < types){  // User reached the top of the list and goes to end
+                            overflow_flag = true;
+                            needsRedraw = true;
+                        }
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Down) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types + 1) % selectedMenuChildren.size();
                         overflow = predictOverflow(selectedMenu, generalScreen, window);
                         if (overflow == types){
-                            overflow_flag = true; // Indicates user reached the overflow
+                            overflow_flag = true;
+                            needsRedraw = true;
+                        }
+                        else if (overflow - 1 > types){  // User reached the end of the list and came back to beggining
+                            overflow_flag = false; 
                             needsRedraw = true;
                         }
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
@@ -1088,14 +1100,28 @@ uint16_t initAndStartMainWindowLoop() {
                             createTree(selectedMenu->getChildren()[types], subtopics, 1);
                             selectedMenu = selectedMenu->getChildren()[types];
                             selectedMenuChildren = selectedMenu->getChildren();
+                            types = 0; // Bringing back user to first element of the new deployed list
+                            selectedMenuChildren[types]->setFontSize(BIG_FONT);
                         } else {
                             indices.pop_back();
+                        }
+                        if (overflow != 0){  //clean overflow variables, when accessing a topic
+                            overflow = 0;
+                            overflow_flag = false; 
+                            needsRedraw = true;
                         }
                     } else if (event.key.code == sf::Keyboard::Left && selectedMenu != mainMenu) {
                         selectedMenu->removeAllChildren();
                         selectedMenu = selectedMenu->getParent();
                         selectedMenuChildren = selectedMenu->getChildren();
                         indices.pop_back();
+                        types = 0; // Bringing back user to first element of the new deployed list
+                        selectedMenuChildren[types]->setFontSize(BIG_FONT);
+                        if (overflow != 0){  //clean overflow variables, when coming back to last menu
+                            overflow = 0;
+                            overflow_flag = false; 
+                            needsRedraw = true;
+                        }
                     }
                     break;
 
