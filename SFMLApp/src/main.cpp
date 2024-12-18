@@ -24,6 +24,7 @@ const std::string IMAGES_PATH = "images/";
 const std::string FONTS_PATH = "fonts/";
 const std::string ICONS_PATH = "images/icons/";
 const std::string RETRO_FONTH_PATH = FONTS_PATH + "retro_computer.ttf";
+const std::string MUSIC_FILE = "MASTER_BOOT_RECORD_INTERRUPT_REQUEST.mp3";
 
 const std::string WINDOW_TITLE = "C++ Bible by JALL";
 const std::string BACKGROUND_IMAGE_OBJ = "BackgroundImage";
@@ -62,6 +63,8 @@ const int BLOCK_SIZE = 15;
 const int NORMAL_FONT = 30;
 const float FONT_RESIZE = 1.27;
 const int BIG_FONT = int(NORMAL_FONT * FONT_RESIZE);
+const int MENU_FONT_SIZE = 40;
+const int LINE_SPACING = 25;
 
 // Calculate the number of rows and columns
 const int rows = SCREEN_HEIGHT / BLOCK_SIZE;
@@ -144,7 +147,7 @@ struct LineTextParams {
     std::array<uint16_t, 3> color;
     std::string text;
     std::string fontPath;
-    uint16_t textSize;
+    uint16_t fontSize;
     bool centered;
     std::optional<std::vector<LineTextParams>> subtopics;
     int depth;
@@ -160,9 +163,34 @@ std::vector<LineTextParams> TopicFloatingpointTypes = {
 
 //   {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> TopicIntegralTypes = {
-    {"Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
-    {"Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
-    {"Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"1.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"2.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"3.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"4.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"5.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"6.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"7.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"8.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"9.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"10.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"11.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"12.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"13.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"14.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"15.Practice", 0, 0, CRTGreen, "GGPractice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"16.Description", 0, 0, CRTGreen, "GGDescription gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"17.Example", 0, 0, CRTGreen, "GGExample gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"18.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+
+    {"19.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"20.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    {"21.Practice", 0, 0, CRTGreen, "Practice gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
+    
 };
 
 //{"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
@@ -182,7 +210,7 @@ std::vector<LineTextParams> dataTypesTopics = {
     {"Topic2-5", 0, 0, CRTGreen, "Void Type", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
 };
 
-LineTextParams mainMenuParams = {"mainMenu", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "MAIN MENU", RETRO_FONTH_PATH, 40, true};
+LineTextParams mainMenuParams = {"mainMenu", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "MAIN MENU", RETRO_FONTH_PATH, MENU_FONT_SIZE, true};
 
 std::vector<LineTextParams> generalTopics = {
     {"Topic1", 0, 0, CRTGreen, "Introduction to C++ Programming", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
@@ -195,7 +223,6 @@ std::vector<LineTextParams> generalTopics = {
     {"Topic8", 0, 0, CRTGreen, "File Handling in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic9", 0, 0, CRTGreen, "Error Handling and Debugging", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic10", 0, 0, CRTGreen, "Advanced Topics in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
-
 
     {"Topic11", 0, 0, CRTGreen, "GGG Introduction to C++ Programming", RETRO_FONTH_PATH, NORMAL_FONT, false, introductionTopics, 1},
     {"Topic12", 0, 0, CRTGreen, "GGG Data Types in C++", RETRO_FONTH_PATH, NORMAL_FONT, false, dataTypesTopics, 1},
@@ -230,7 +257,7 @@ void filterTopicsBySize(std::vector<LineTextParams>& topics, const ScreenParams&
 
     auto fitsWithinScreen = [&](const LineTextParams& topic) {
         // Calcular el ancho estimado del texto en píxeles
-        uint16_t estimatedWidth = topic.text.size() * (topic.textSize * 0.9) * FONT_RESIZE;
+        uint16_t estimatedWidth = topic.text.size() * (topic.fontSize * 0.9) * FONT_RESIZE;
         return estimatedWidth <= maxWidth;
     };
 
@@ -562,6 +589,12 @@ public:
         return textObj.getLocalBounds().width;
     }
 
+    // Get the width of the text
+    float getTextHeight() const {
+        return textObj.getLocalBounds().height;
+    }
+
+
     // Método para eliminar todos los hijos
     void removeAllChildren() {
         for (auto& child : children) {
@@ -746,7 +779,7 @@ void handleMovingButton(sf::Sprite& movingButton,
 // Load music
 std::shared_ptr<sf::Music> loadAndPlayMusic() {
     auto music = std::make_shared<sf::Music>();
-    if (!music->openFromFile(AUDIOS_PATH + "MASTER_BOOT_RECORD_INTERRUPT_REQUEST.mp3")) {
+    if (!music->openFromFile(AUDIOS_PATH + MUSIC_FILE)) {
         std::cerr << "Error loading music.\n";
         return nullptr; // Return nullptr to indicate failure
     }
@@ -755,20 +788,45 @@ std::shared_ptr<sf::Music> loadAndPlayMusic() {
     return music;
 }
 
+int predictOverflow(
+    const std::shared_ptr<TextObject>& rootNode,
+    const ScreenParams& screen,
+    sf::RenderWindow& window
+) {
+    const auto& children = rootNode->getChildren();
+    int count = 0;
+    int next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Initialize next line position
+
+    for (const auto& child : children) {
+        // Verificar si la posición del próximo nodo excede el margen inferior
+        if (next_line > screen.height - screen.bottomMargin) {
+            return count;  // Return the count if overflow will happen
+        }
+        
+        // Update next line position based on child’s height (assuming child has height)
+        next_line += child->getTextHeight() + LINE_SPACING; 
+        count++;
+    }
+
+    return count;  // Return the total count if no overflow occurs
+}
+
+
 //drawMenuFromRoot
 // Función para dibujar los nodos existentes, comenzando desde un nodo raíz
 void drawMenuFromRoot(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window,
-    uint16_t step_size
+    bool overflow_flag, // Indicates user reached overflow
+    int overflow
 ) {
     if (!rootNode) {
         std::cerr << "Error: Root node is null." << std::endl;
         return;
     }
 
-    uint16_t next_line = step_size * 2; // Comenzar desde una posición vertical más centrada
+    uint16_t next_line = screen.topMargin + 50; // Comenzar desde el margen superior
 
     // Dibujar el nodo raíz centrado
     uint16_t root_x_position = general4BlocksX.blockX2; // Ajustar para centrar en la pantalla
@@ -777,36 +835,35 @@ void drawMenuFromRoot(
     rootNode->updateTextPosition();
     rootNode->draw(window); // Dibujar el nodo raíz
 
-    next_line += step_size * 2; // Espacio adicional debajo del nodo raíz
+    next_line += LINE_SPACING * 2; // Espacio adicional debajo del nodo raíz
 
-    // Dibujar los hijos del nodo raíz
+    uint16_t child_x_position = general4BlocksX.blockX2;
     const auto& children = rootNode->getChildren();
-    for (const auto& child : children) {
-        // Verificar si la posición del próximo nodo excede el margen inferior
-        if (next_line + step_size > screen.height - screen.bottomMargin) {
-            std::cerr << "Warning: Node exceeds bottom margin. Stopping rendering." << std::endl;
-            break;
+    int start = 0;
+
+    if (overflow_flag && overflow != 0){
+        start = overflow;
+    }
+
+    for (size_t i = start; i < children.size(); ++i) {
+
+        if (next_line > screen.height - screen.bottomMargin) {
+            break; 
         }
 
-        uint16_t child_x_position = general4BlocksX.blockX2;
+        // Dibujar el hijo en la nueva posición
+        children[i]->setYPosition(next_line);
+        children[i]->setXPosition(child_x_position);
+        children[i]->updateTextPosition();
+        children[i]->draw(window);
 
-        /*
-        // Calcular la posición centrada para cada hijo
-        if (child_x_position + child->getTextWidth() > screen.width) {
-            std::cerr << "Warning: Node exceeds right margin. Skipping node." << std::endl;
-            continue;
-        }
+        next_line += children[i]->getTextHeight() + LINE_SPACING; // Avanzar a la siguiente línea
 
-        */
 
-        child->setXPosition(child_x_position); // Actualizar posición X del hijo
-        child->setYPosition(next_line);        // Actualizar posición Y del hijo
-        child->updateTextPosition();
-        child->draw(window); // Dibujar el hijo
-
-        next_line += step_size; // Avanzar a la siguiente línea
     }
 }
+
+
 
 void populateRootWithSubtopics(
     const std::shared_ptr<TextObject>& root,
@@ -829,7 +886,7 @@ std::vector<std::shared_ptr<TextObject>> createTextObjects(const std::vector<Lin
             param.color, 
             param.text, 
             param.fontPath, 
-            param.textSize, 
+            param.fontSize, 
             param.centered
         );
         textObjects.push_back(textObject);
@@ -967,7 +1024,7 @@ uint16_t initAndStartMainWindowLoop() {
     // Initialize menu and hierarchical tree
     auto mainMenu = std::make_shared<TextObject>(
         mainMenuParams.name, mainMenuParams.x_position, mainMenuParams.y_position, mainMenuParams.color,
-        mainMenuParams.text, mainMenuParams.fontPath, mainMenuParams.textSize, mainMenuParams.centered
+        mainMenuParams.text, mainMenuParams.fontPath, mainMenuParams.fontSize, mainMenuParams.centered
     );
     createTree(mainMenu, generalTopics, 1);
 
@@ -978,6 +1035,9 @@ uint16_t initAndStartMainWindowLoop() {
     auto selectedMenu = mainMenu;
     auto selectedMenuChildren = selectedMenu->getChildren();
     int8_t types = 0;
+
+    bool overflow_flag = false;
+    int overflow = 0;
 
     std::atomic<bool> needsRedraw(true);
 
@@ -996,6 +1056,7 @@ uint16_t initAndStartMainWindowLoop() {
     // Main event loop
     while (window.isOpen()) {
         sf::Event event;
+        selectedMenuChildren[types]->setFontSize(BIG_FONT);
         while (window.pollEvent(event)) {
             switch (event.type) {
                 case sf::Event::Closed:
@@ -1013,6 +1074,11 @@ uint16_t initAndStartMainWindowLoop() {
                     } else if (event.key.code == sf::Keyboard::Down) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
                         types = (types + 1) % selectedMenuChildren.size();
+                        overflow = predictOverflow(selectedMenu, generalScreen, window);
+                        if (overflow == types){
+                            overflow_flag = true; // Indicates user reached the overflow
+                            needsRedraw = true;
+                        }
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
                     } else if (event.key.code == sf::Keyboard::Enter && !selectedMenu->isLeaf()) {
                         selectedMenuChildren[types]->setFontSize(NORMAL_FONT);
@@ -1055,7 +1121,7 @@ uint16_t initAndStartMainWindowLoop() {
             }
             soundON->draw(window);
             movingON->draw(window);
-            drawMenuFromRoot(selectedMenu, generalScreen, window, 50);
+            drawMenuFromRoot(selectedMenu, generalScreen, window, overflow_flag, overflow);
             window.display();
             needsRedraw = false;
         } else {
