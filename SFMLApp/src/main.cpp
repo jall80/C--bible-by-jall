@@ -43,6 +43,12 @@ const std::string CPP100FILL_IMAGE_FILE = "cpp100filled.png";
 const std::string X100_IMAGE_OBJ = "Xicon100";
 const std::string X100_IMAGE_FILE = "Xicon100.png";
 
+const std::string UP_ARROW_IMAGE_OBJ = "upArrow";
+const std::string UP_ARROW_IMAGE_FILE = "upArrow.png";
+
+const std::string DOWN_ARROW_IMAGE_OBJ = "downArrow";
+const std::string DOWN_ARROW_IMAGE_FILE = "downArrow.png";
+
 constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
 
 // For moving object
@@ -118,7 +124,7 @@ struct ScreenParams {
     uint16_t leftMargin;
     uint16_t rightMargin;
     uint16_t topMargin;
-    uint16_t bottomMargin;
+    uint16_t bottomMargin; 
 };
 
 ScreenParams generalScreen = {SCREEN_WIDTH, SCREEN_HEIGHT, 50, 50, 50, 50};
@@ -289,6 +295,46 @@ void filterTopicsBySize(std::vector<LineTextParams>& topics, const ScreenParams&
 }
 
 //////////////////////////////////////
+
+class Stack {
+private:
+    std::vector<int8_t> stack;
+
+public:
+    // Agregar un valor a la pila (push)
+    void push(int8_t value) {
+        stack.push_back(value);
+    }
+
+    // Eliminar y obtener el valor superior de la pila (pop)
+    int8_t pop() {
+        if (!stack.empty()) {
+            int8_t value = stack.back();
+            stack.pop_back();
+            return value;
+        } else {
+            std::cerr << "Error: Pila vacía." << std::endl;
+            return -1;  // Valor de error
+        }
+    }
+
+    // Obtener el valor superior de la pila sin eliminarlo (peek)
+    int8_t peek() const {
+        if (!stack.empty()) {
+            return stack.back();
+        } else {
+            std::cerr << "Error: Pila vacía." << std::endl;
+            return -1;  // Valor de error
+        }
+    }
+
+    // Verificar si la pila está vacía
+    bool isEmpty() const {
+        return stack.empty();
+    }
+};
+
+
 
 //////////////////////////////////
 
@@ -816,6 +862,44 @@ int findNumberInArrays(const std::vector<int*>& vec, int number) {
 }
 
 
+int findArrayRelation(const std::vector<int*>& vec, int number) { 
+    for (size_t i = 0; i < vec.size(); i++) {
+        int* array = vec[i];  // Obtener el arreglo
+
+        // Buscar el número en el arreglo hasta encontrar el final (-1)
+        for (size_t j = 0; array[j] != -1; j++) {
+            if (array[j] == number) {
+                // Verificar si tiene arreglo anterior y posterior
+                bool hasPrevious = (i > 0);  // Tiene arreglo anterior si i > 0
+                bool hasNext = (i < vec.size() - 1);  // Tiene arreglo posterior si i < vec.size() - 1
+
+                // Retornar el valor correspondiente según la existencia de arreglos anteriores y posteriores
+                if (hasPrevious && hasNext) {
+                    return 2;  // Tiene tanto anterior como posterior
+                } else if (hasPrevious) {
+                    return 0;  // Tiene solo arreglo anterior
+                } else if (hasNext) {
+                    return 1;  // Tiene solo arreglo posterior
+                }
+            }
+        }
+    }
+    return -1;  // Retornar -1 si no se encuentra el número
+}
+
+void drawArrowsBasedOnRelation(uint8_t relationResult, sf::RenderWindow& window, std::unique_ptr<TextureObject>& upArrow, std::unique_ptr<TextureObject>& downArrow) {
+    // Dibuja las flechas basadas en el resultado de la relación
+    if (relationResult == 0) {
+        upArrow->draw(window);  // Solo la flecha hacia arriba
+    } else if (relationResult == 1) {
+        downArrow->draw(window);  // Solo la flecha hacia abajo
+    } else if (relationResult == 2) {
+        downArrow->draw(window);  // Ambas flechas
+        upArrow->draw(window);
+    }
+}
+
+
 
 int* createIndexArray(const std::vector<int>& indices) {
     int* indexArray = new int[indices.size()];  // Crear un arreglo dinámico
@@ -1066,6 +1150,13 @@ uint16_t initAndStartMainWindowLoop() {
     std::unique_ptr<TextureObject> movingOFF = std::make_unique<TextureObject>(X100_IMAGE_OBJ, 50, 50, grid[122][8].x, grid[122][8].y);
     if (!movingOFF->loadTexture(ICONS_PATH + X100_IMAGE_FILE)) return -1;
 
+
+    std::unique_ptr<TextureObject> downArrow = std::make_unique<TextureObject>(DOWN_ARROW_IMAGE_OBJ, 64, 64, general4BlocksX.blockX2 - 200, generalScreen.height - generalScreen.bottomMargin - 50);
+    if (!downArrow->loadTexture(ICONS_PATH + DOWN_ARROW_IMAGE_FILE )) return -1;
+
+    std::unique_ptr<TextureObject> upArrow = std::make_unique<TextureObject>(UP_ARROW_IMAGE_OBJ, 64, 64, general4BlocksX.blockX2 -250, generalScreen.height - generalScreen.bottomMargin - 50);
+    if (!upArrow->loadTexture(ICONS_PATH + UP_ARROW_IMAGE_FILE )) return -1;
+
     // Initialize menu and hierarchical tree
     auto mainMenu = std::make_shared<TextObject>(
         mainMenuParams.name, mainMenuParams.x_position, mainMenuParams.y_position, mainMenuParams.color,
@@ -1080,6 +1171,9 @@ uint16_t initAndStartMainWindowLoop() {
     auto selectedMenu = mainMenu;
     auto selectedMenuChildren = selectedMenu->getChildren();
     int8_t types = 0;
+    //int8_t last_types = 0;
+
+    Stack last_types;
 
 
     std::vector<int*> overflow_list = predictOverflow(selectedMenu, generalScreen, window);
@@ -1128,6 +1222,7 @@ uint16_t initAndStartMainWindowLoop() {
                             createTree(selectedMenu->getChildren()[types], subtopics, 1);
                             selectedMenu = selectedMenu->getChildren()[types];
                             selectedMenuChildren = selectedMenu->getChildren();
+                            last_types.push(types); // save last position in a stack to come back later
                             types = 0; // Bringing back user to first element of the new deployed list
                             selectedMenuChildren[types]->setFontSize(BIG_FONT);
                             overflow_list = predictOverflow(selectedMenu, generalScreen, window);
@@ -1139,7 +1234,7 @@ uint16_t initAndStartMainWindowLoop() {
                         selectedMenu = selectedMenu->getParent();
                         selectedMenuChildren = selectedMenu->getChildren();
                         indices.pop_back();
-                        types = 0; // Bringing back user to first element of the new deployed list
+                        types = last_types.pop(); // Bringing back user to the last position
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
                         overflow_list = predictOverflow(selectedMenu, generalScreen, window);
                     }
@@ -1168,6 +1263,8 @@ uint16_t initAndStartMainWindowLoop() {
             soundON->draw(window);
             movingON->draw(window);
             drawMenuFromRoot(selectedMenu, generalScreen, window, findNumberInArrays(overflow_list, types));
+            uint8_t temp = findArrayRelation(overflow_list, types);
+            drawArrowsBasedOnRelation(temp, window, upArrow, downArrow);
             window.display();
             needsRedraw = false;
         } else {
