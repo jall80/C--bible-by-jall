@@ -3,39 +3,48 @@
 #include <iostream>
 #include <string>
 #include <array>
-#include <memory> // EVALUATE USING THIS LIBRARY IN ORDER TO IMPROVE MEMORY HANDLING
-#include <filesystem> // For filesystem operations
-#include <cstdint>
+#include <memory> // smart pointers (consider change some shared pointers to unique)
+#include <filesystem> // For filesystem operations (No used yet, it could be used later)
+#include <cstdint> // different int types
 #include <optional>
 #include <thread>
-#include <atomic>
+#include <atomic>  // variables used in different thereads (keep coherence between thereads)
 #include <mutex>
 #include <chrono>
 #include <cstdlib> // Para rand() y srand()
-#include <ctime>   // Para time()
 #include <cmath>
 #include <stdexcept> // For std::runtime_error
 #include <condition_variable>
-#include <functional> // Necesario
+#include <functional>
 
-
+// Paths
 const std::string AUDIOS_PATH = "audios/";
 const std::string IMAGES_PATH = "images/";
 const std::string FONTS_PATH = "fonts/";
 const std::string ICONS_PATH = "images/icons/";
+
+// Fonts
 const std::string RETRO_FONTH_PATH = FONTS_PATH + "retro_computer.ttf";
+
+// Audio
 const std::string MUSIC_FILE = "MASTER_BOOT_RECORD_INTERRUPT_REQUEST.mp3";
 
+// Window Configuration
 const std::string WINDOW_TITLE = "C++ Bible by JALL";
+
+// Background Images
 const std::string BACKGROUND_IMAGE_OBJ = "BackgroundImage";
 const std::string BACKGROUND_IMAGE_FILE = "realCRT.jpeg";
+
+// Sound Icons
 const std::string SOUND_ON_OBJ = "soundON";
 const std::string SOUND_ON_FILE = "soundON.png";
 const std::string SOUND_OFF_OBJ = "soundOFF";
 const std::string SOUND_OFF_FILE = "soundOFF.png";
+
+// Miscellaneous Icons
 const std::string CPP150_IMAGE_OBJ = "cpp150";
 const std::string CPP150_IMAGE_FILE = "cpp150.png";
-
 
 const std::string CPP100FILL_IMAGE_OBJ = "cpp100filled";
 const std::string CPP100FILL_IMAGE_FILE = "cpp100filled.png";
@@ -49,7 +58,16 @@ const std::string UP_ARROW_IMAGE_FILE = "upArrow.png";
 const std::string DOWN_ARROW_IMAGE_OBJ = "downArrow";
 const std::string DOWN_ARROW_IMAGE_FILE = "downArrow.png";
 
+// Colors
 constexpr std::array<uint16_t, 3> CRTGreen{0, 255, 128};
+
+// Arrows icons control
+enum class Arrow {
+        Up = 1,
+        Down = 2,
+        Both = 3,
+        Error = -1
+};
 
 // For moving object
 
@@ -85,26 +103,41 @@ struct Block {
     Block(int _x, int _y) : x(_x), y(_y) {}
 };
 
-// Function to create and initialize the 2D matrix with (columns, rows) order
+/**
+ * @brief Creates and initializes a 2D grid (matrix) of blocks with dimensions based on the given width, height, and block size.
+ * 
+ * @param width The total width of the grid area in pixels.
+ * @param height The total height of the grid area in pixels.
+ * @param blockSize The size (both width and height) of each block in pixels.
+ * @return std::vector<std::vector<Block>> A 2D vector representing the grid, where each element is a Block.
+ *         The grid is organized in a (columns, rows) layout.
+ */
 std::vector<std::vector<Block>> createGrid(int width, int height, int blockSize) {
-    // Calculate the number of columns and rows
+    // Calculate the number of columns and rows based on the width, height, and block size
     int cols = width / blockSize;
     int rows = height / blockSize;
 
-    // Create the 2D matrix
+    // Create a 2D matrix with 'cols' columns, each initially empty
     std::vector<std::vector<Block>> grid(cols, std::vector<Block>());
 
-    // Initialize the matrix with blocks
+    // Populate the grid with blocks
+    // Iterate over columns (outer loop) and rows (inner loop)
     for (int j = 0; j < cols; ++j) {
         for (int i = 0; i < rows; ++i) {
+            // Add a new Block at the calculated position (j * blockSize, i * blockSize)
             grid[j].emplace_back(j * blockSize, i * blockSize);
         }
     }
 
-    return grid; // Return the initialized matrix
+    // Return the fully initialized grid
+    return grid;
 }
 
 
+
+// Definitions for Screen and Texture Parameters
+
+// Texture Object Definition
 struct StructTextureObject {
     std::string name;
     std::string path;
@@ -116,27 +149,32 @@ struct StructTextureObject {
     float velocity_y;
 };
 
-StructTextureObject iconCpp150 = {"iconCpp150", ICONS_PATH + CPP150_IMAGE_FILE, 150, 150, 0, 0, -1.0f, -2.0f} ;
+// Cpp icon Initialization
+StructTextureObject iconCpp150 = {"iconCpp150", ICONS_PATH + CPP150_IMAGE_FILE, 150, 150, 0, 0, -1.0f, -2.0f};
 
+// Screen Parameters Definition
 struct ScreenParams {
     uint16_t width;
     uint16_t height;
     uint16_t leftMargin;
     uint16_t rightMargin;
     uint16_t topMargin;
-    uint16_t bottomMargin; 
+    uint16_t bottomMargin;
 };
 
+// Generalscreen Initialization
 ScreenParams generalScreen = {SCREEN_WIDTH, SCREEN_HEIGHT, 50, 50, 50, 50};
 
-struct ScreenBlocks_X{
+// Screen Blocks Definition
+struct ScreenBlocks_X {
     uint16_t blockX1;
     uint16_t blockX2;
     uint16_t blockX3;
     uint16_t blockX4;
 };
 
-uint16_t FourblocksSize = (generalScreen.width - (generalScreen.leftMargin + generalScreen.rightMargin))/4;
+// Calculate Block Size and Initialize Blocks
+uint16_t FourblocksSize = (generalScreen.width - (generalScreen.leftMargin + generalScreen.rightMargin)) / 4;
 
 ScreenBlocks_X general4BlocksX = {
     static_cast<uint16_t>(0), 
@@ -145,7 +183,7 @@ ScreenBlocks_X general4BlocksX = {
     static_cast<uint16_t>(FourblocksSize * 3),
 };
 
-
+// Text Line Parameters Definition
 struct LineTextParams {
     std::string name;
     uint16_t x_position;
@@ -159,7 +197,6 @@ struct LineTextParams {
     int depth;
 };
 
-//{"Floating-pointTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Floating-point Types", RETRO_FONTH_PATH, 40, true},
 
 std::vector<LineTextParams> TopicFloatingpointTypes = {
     {"Description", 0, 0, CRTGreen, "Description", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
@@ -167,7 +204,6 @@ std::vector<LineTextParams> TopicFloatingpointTypes = {
     {"Practice", 0, 0, CRTGreen, "Practice", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
 };
 
-//   {"IntegralTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. Integral Types", RETRO_FONTH_PATH, 40, true},
 std::vector<LineTextParams> TopicIntegralTypes = {
     {"1.Description", 0, 0, CRTGreen, "Description gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
     {"2.Example", 0, 0, CRTGreen, "Example gg", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 3},
@@ -199,7 +235,6 @@ std::vector<LineTextParams> TopicIntegralTypes = {
     
 };
 
-//{"MenuIntroduction", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "1. INTRODUCTION TO C++ PROGRAMMING", RETRO_FONTH_PATH, 40, true},
 
 std::vector<LineTextParams> introductionTopics = {
     {"Topic1-1", 0, 0, CRTGreen, "History and Overview of C++", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
@@ -207,7 +242,7 @@ std::vector<LineTextParams> introductionTopics = {
     {"Topic1-3", 0, 0, CRTGreen, "Basic Syntax and Structure", RETRO_FONTH_PATH, NORMAL_FONT, false, std::nullopt, 2},
 };
 
-//{"MenuDataTypes", general4BlocksX.blockX3, generalScreen.topMargin, CRTGreen, "2. Data Types in C++", RETRO_FONTH_PATH, 40, true},
+
 std::vector<LineTextParams> dataTypesTopics = {
     {"Topic2-1", 0, 0, CRTGreen, "Integral Types", RETRO_FONTH_PATH, NORMAL_FONT, false, TopicIntegralTypes, 2},
     {"Topic2-2", 0, 0, CRTGreen, "Floating-point Types", RETRO_FONTH_PATH, NORMAL_FONT, false, TopicFloatingpointTypes, 2},
@@ -255,282 +290,566 @@ std::vector<LineTextParams> generalTopics = {
 };
 
 
+/**
+ * @brief Recursively enumerates topics and their subtopics, adding a numbered format based on depth.
+ * 
+ * @param topics A reference to a vector of LineTextParams objects representing the topics to be enumerated.
+ *               Each LineTextParams contains a `text` field and an optional pointer to its subtopics.
+ * @param depth (Optional) The current depth level of enumeration. Defaults to 0 for top-level topics.
+ *              Determines the indentation of the numbering.
+ */
 void enumerateTopics(std::vector<LineTextParams>& topics, int depth = 0) {
+    // Iterate through the list of topics
     for (size_t i = 0; i < topics.size(); ++i) {
+        // Create a string stream to format the numbered text
         std::ostringstream numberedText;
+        // Add indentation based on the current depth and number each topic
         numberedText << std::string(depth * 2, ' ') << (i + 1) << ". " << topics[i].text;
+        // Update the topic's text with the formatted numbered string
         topics[i].text = numberedText.str();
 
-        // Si hay subtemas, enumerarlos recursivamente
+        // Check if the current topic has subtopics
         if (topics[i].subtopics) {
+            // Recursively enumerate subtopics with increased depth
             enumerateTopics(*topics[i].subtopics, depth + 1);
         }
     }
 }
 
 
-// Función para eliminar temas que excedan el tamaño máximo permitido
+
+/**
+ * @brief Filters topics based on their width, removing those that exceed the maximum width allowed for the screen.
+ *        If a topic exceeds the allowed width, an error is thrown.
+ * 
+ * @param topics A reference to a vector of LineTextParams representing the topics to be checked.
+ *               Each LineTextParams contains a `text` field and an optional pointer to its subtopics.
+ * @param screenParams A reference to the ScreenParams structure, which contains information about the screen dimensions
+ *                     and margins used to calculate the maximum allowed width for the topics.
+ * 
+ * @throws std::runtime_error If a topic exceeds the maximum width, an error is thrown with a descriptive message.
+ */
 void filterTopicsBySize(std::vector<LineTextParams>& topics, const ScreenParams& screenParams) {
+    // Calculate the maximum width available for a topic on the screen
     const uint16_t maxWidth = screenParams.width - general4BlocksX.blockX2 - screenParams.leftMargin;
 
+    // Lambda function to check if a topic fits within the screen width
     auto fitsWithinScreen = [&](const LineTextParams& topic) {
-        // Calcular el ancho estimado del texto en píxeles
+        // Estimate the width of the topic text in pixels based on font size and font resize factor
         uint16_t estimatedWidth = topic.text.size() * (topic.fontSize * 0.9) * FONT_RESIZE;
         return estimatedWidth <= maxWidth;
     };
 
+    // Iterate through the topics and validate their size
     topics.erase(std::remove_if(topics.begin(), topics.end(), [&](LineTextParams& topic) {
-        // Filtrar subtemas recursivamente
+        // Recursively filter subtopics to ensure their size also fits within the screen
         if (topic.subtopics) {
             filterTopicsBySize(*topic.subtopics, screenParams);
         }
 
-        // Si el tema no cabe en la pantalla, lanzar un error
+        // If the topic doesn't fit within the allowed width, throw an error
         if (!fitsWithinScreen(topic)) {
             throw std::runtime_error("Topic '" + topic.name + "' exceeds the maximum width of " + std::to_string(maxWidth) + " pixels.");
         }
 
-        return false; // No se eliminan temas aquí, solo se valida su tamaño
+        // No topics are deleted here, only validated for size
+        return false;
     }), topics.end());
 }
 
-//////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * @class Stack
+ * @brief A simple stack implementation using a vector to store int16_t values.
+ *        The stack supports basic stack operations: push, pop, peek, and check if it's empty.
+ */
 class Stack {
 private:
-    std::vector<int8_t> stack;
+    std::vector<int16_t> stack;  ///< The internal vector that holds the stack elements.
 
 public:
-    // Agregar un valor a la pila (push)
-    void push(int8_t value) {
-        stack.push_back(value);
+    /**
+     * @brief Adds a value to the top of the stack.
+     * 
+     * @param value The value to be added to the stack.
+     */
+    void push(int16_t value) {
+        stack.push_back(value);  ///< Adds the value to the stack (end of the vector).
     }
 
-    // Eliminar y obtener el valor superior de la pila (pop)
-    int8_t pop() {
+    /**
+     * @brief Removes and returns the top value of the stack.
+     * 
+     * @return int16_t The value at the top of the stack. 
+     *         Returns -1 if the stack is empty (error case).
+     */
+    int16_t pop() {
         if (!stack.empty()) {
-            int8_t value = stack.back();
-            stack.pop_back();
+            int16_t value = stack.back();  ///< Retrieve the top value.
+            stack.pop_back();  ///< Remove the top value from the stack.
             return value;
         } else {
-            std::cerr << "Error: Pila vacía." << std::endl;
-            return -1;  // Valor de error
+            std::cerr << "Error: Pila vacía." << std::endl;  ///< Error message if stack is empty.
+            return -1;  ///< Return an error value (-1).
         }
     }
 
-    // Obtener el valor superior de la pila sin eliminarlo (peek)
-    int8_t peek() const {
+    /**
+     * @brief Returns the top value of the stack without removing it.
+     * 
+     * @return int16_t The value at the top of the stack.
+     *         Returns -1 if the stack is empty (error case).
+     */
+    int16_t peek() const {
         if (!stack.empty()) {
-            return stack.back();
+            return stack.back();  ///< Return the top value without removing it.
         } else {
-            std::cerr << "Error: Pila vacía." << std::endl;
-            return -1;  // Valor de error
+            std::cerr << "Error: Pila vacía." << std::endl;  ///< Error message if stack is empty.
+            return -1;  ///< Return an error value (-1).
         }
     }
 
-    // Verificar si la pila está vacía
+    /**
+     * @brief Checks if the stack is empty.
+     * 
+     * @return true If the stack is empty.
+     * @return false If the stack contains one or more elements.
+     */
     bool isEmpty() const {
-        return stack.empty();
+        return stack.empty();  ///< Return whether the stack is empty.
     }
 };
 
 
 
-//////////////////////////////////
-
+/**
+ * @class ThreadController
+ * @brief A class that controls a thread, allowing it to be started, paused, resumed, and stopped.
+ *        It provides thread management with synchronization mechanisms like mutexes and condition variables.
+ */
 class ThreadController {
+
+private:
+    std::thread controlledThread;           ///< The controlled thread.
+    std::mutex controlMutex;                ///< Mutex used to synchronize access to control flags.
+    std::condition_variable pauseCondition; ///< Condition variable to handle pausing and resuming the thread.
+    std::atomic<bool> stopFlag;             ///< Atomic flag to indicate if the thread should stop.
+    std::atomic<bool> pauseFlag;            ///< Atomic flag to indicate if the thread is paused.
+
 public:
+    /**
+     * @brief Constructor that initializes the thread control flags.
+     */
     ThreadController() : stopFlag(false), pauseFlag(false) {}
 
-    // Iniciar el hilo con la función proporcionada
+    /**
+     * @brief Starts the thread, executing the given function.
+     * 
+     * @param func The function to be executed by the thread.
+     */
     void start(std::function<void()> func) {
-        stopFlag = false;
-        pauseFlag = false;
+        stopFlag = false;  ///< Reset stop flag before starting the thread.
+        pauseFlag = false; ///< Reset pause flag before starting the thread.
+
+        // Start the thread with the given function
         controlledThread = std::thread([this, func]() {
             while (!stopFlag) {
-                // Manejo de pausa: se espera si está en pausa
+                // Handle pause: wait if the thread is in a paused state
                 {
                     std::unique_lock<std::mutex> lock(controlMutex);
                     pauseCondition.wait(lock, [this]() { return !pauseFlag || stopFlag; });
                 }
 
-                // Revisar si se solicitó detener el hilo
+                // If the stop flag is set, break the loop and stop the thread
                 if (stopFlag) break;
 
-                // Ejecutar la función proporcionada
+                // Execute the provided function
                 func();
             }
         });
     }
 
-    // Pausar el hilo
+    /**
+     * @brief Pauses the thread.
+     */
     void pause() {
         {
             std::lock_guard<std::mutex> lock(controlMutex);
-            pauseFlag = true;  // Poner el hilo en pausa
+            pauseFlag = true; ///< Set the pause flag to true to pause the thread.
         }
-        pauseCondition.notify_all();  // Notificar al hilo
+        pauseCondition.notify_all();  ///< Notify the thread to check the pause condition.
     }
 
-    // Reanudar el hilo
+    /**
+     * @brief Resumes the paused thread.
+     */
     void resume() {
         {
             std::lock_guard<std::mutex> lock(controlMutex);
-            pauseFlag = false;  // Reanudar el hilo
+            pauseFlag = false; ///< Set the pause flag to false to resume the thread.
         }
-        pauseCondition.notify_all();  // Notificar al hilo que se reanude
+        pauseCondition.notify_all();  ///< Notify the thread to check the resume condition.
     }
 
-    // Detener el hilo
+    /**
+     * @brief Stops the thread, ensuring it completes its current execution.
+     */
     void stop() {
         {
             std::lock_guard<std::mutex> lock(controlMutex);
-            stopFlag = true;  // Detener el hilo
-            pauseFlag = false;  // Asegurar que no esté en pausa
+            stopFlag = true;  ///< Set the stop flag to true to stop the thread.
+            pauseFlag = false; ///< Ensure the thread is not paused when stopping.
         }
-        pauseCondition.notify_all();  // Desbloquear el hilo si estaba esperando
+        pauseCondition.notify_all();  ///< Notify the thread to check the stop condition.
+        
         if (controlledThread.joinable()) {
-            controlledThread.join();  // Esperar a que el hilo termine
+            controlledThread.join();  ///< Wait for the thread to finish execution.
         }
     }
 
-    // Verificar si el hilo está pausado
+    /**
+     * @brief Checks if the thread is currently paused.
+     * 
+     * @return true if the thread is paused, false otherwise.
+     */
     bool isPaused() const {
-        return pauseFlag.load();
+        return pauseFlag.load();  ///< Return the value of the pause flag.
     }
 
+    /**
+     * @brief Gets a reference to the pause flag.
+     * 
+     * @return A reference to the atomic pause flag.
+     */
     std::atomic<bool>& getPauseFlag() {
-    return pauseFlag;
+        return pauseFlag;  ///< Return the reference to the pause flag.
     }
 
+    /**
+     * @brief Destructor that ensures the thread is stopped before the object is destroyed.
+     */
     ~ThreadController() {
-        stop();
+        stop();  ///< Ensure the thread is stopped when the object is destroyed.
     }
-
-private:
-    std::thread controlledThread;
-    std::mutex controlMutex;
-    std::condition_variable pauseCondition;
-    std::atomic<bool> stopFlag;  // Cambiado a atomic para evitar problemas de sincronización
-    std::atomic<bool> pauseFlag;  // Cambiado a atomic
 };
 
+
+/**
+ * @class BaseObject
+ * @brief A base class representing an object with position, size, and velocity.
+ *        It includes basic attributes such as name, width, height, position, and velocity.
+ */
 class BaseObject {
 protected:
-    uint16_t height;
-    uint16_t width;
-    uint16_t x_position;
-    uint16_t y_position;
-    std::string name;
-    float velocity_x; // Nueva variable miembro para la velocidad en X
-    float velocity_y; // Nueva variable miembro para la velocidad en Y
+    uint16_t height;         ///< Height of the object.
+    uint16_t width;          ///< Width of the object.
+    uint16_t x_position;     ///< X-coordinate position of the object.
+    uint16_t y_position;     ///< Y-coordinate position of the object.
+    std::string name;        ///< Name of the object.
+    float velocity_x;        ///< Velocity of the object in the X direction.
+    float velocity_y;        ///< Velocity of the object in the Y direction.
 
 public:
-    // Constructor sin velocidad
+    /**
+     * @brief Constructor to initialize the object without velocity.
+     * 
+     * @param _name The name of the object.
+     * @param _width The width of the object.
+     * @param _height The height of the object.
+     * @param _x_position The X-coordinate position of the object.
+     * @param _y_position The Y-coordinate position of the object.
+     */
     BaseObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position)
         : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), velocity_x(0.0f), velocity_y(0.0f) {}
 
-    // Constructor con velocidad
+    /**
+     * @brief Constructor to initialize the object with velocity.
+     * 
+     * @param _name The name of the object.
+     * @param _width The width of the object.
+     * @param _height The height of the object.
+     * @param _x_position The X-coordinate position of the object.
+     * @param _y_position The Y-coordinate position of the object.
+     * @param _velocity_x The velocity of the object in the X direction.
+     * @param _velocity_y The velocity of the object in the Y direction.
+     */
     BaseObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position, float _velocity_x, float _velocity_y)
         : name(_name), width(_width), height(_height), x_position(_x_position), y_position(_y_position), velocity_x(_velocity_x), velocity_y(_velocity_y) {}
 
-    // Destructor
+    /**
+     * @brief Destructor.
+     * The destructor is default as no special cleanup is needed for this class.
+     */
     virtual ~BaseObject() = default;
 
-    // Getters
+    /**
+     * @brief Getter for the object's name.
+     * 
+     * @return The name of the object.
+     */
     std::string getName() const { return name; }
+
+    /**
+     * @brief Getter for the object's height.
+     * 
+     * @return The height of the object.
+     */
     uint16_t getHeight() const { return height; }
+
+    /**
+     * @brief Getter for the object's width.
+     * 
+     * @return The width of the object.
+     */
     uint16_t getWidth() const { return width; }
+
+    /**
+     * @brief Getter for the object's X-coordinate position.
+     * 
+     * @return The X-coordinate position of the object.
+     */
     uint16_t getXPosition() const { return x_position; }
+
+    /**
+     * @brief Getter for the object's Y-coordinate position.
+     * 
+     * @return The Y-coordinate position of the object.
+     */
     uint16_t getYPosition() const { return y_position; }
+
+    /**
+     * @brief Getter for the object's velocity in the X direction.
+     * 
+     * @return The velocity of the object in the X direction.
+     */
     float getVelocityX() const { return velocity_x; }
+
+    /**
+     * @brief Getter for the object's velocity in the Y direction.
+     * 
+     * @return The velocity of the object in the Y direction.
+     */
     float getVelocityY() const { return velocity_y; }
 
-    // Setters
+    /**
+     * @brief Setter for the object's name.
+     * 
+     * @param _name The new name of the object.
+     */
     void setName(const std::string& _name) { name = _name; }
+
+    /**
+     * @brief Setter for the object's height.
+     * 
+     * @param _height The new height of the object.
+     */
     void setHeight(uint16_t _height) { height = _height; }
+
+    /**
+     * @brief Setter for the object's width.
+     * 
+     * @param _width The new width of the object.
+     */
     void setWidth(uint16_t _width) { width = _width; }
+
+    /**
+     * @brief Setter for the object's X-coordinate position.
+     * 
+     * @param _x_position The new X-coordinate position of the object.
+     */
     void setXPosition(uint16_t _x_position) { x_position = _x_position; }
+
+    /**
+     * @brief Setter for the object's Y-coordinate position.
+     * 
+     * @param _y_position The new Y-coordinate position of the object.
+     */
     void setYPosition(uint16_t _y_position) { y_position = _y_position; }
+
+    /**
+     * @brief Setter for the object's velocity in the X direction.
+     * 
+     * @param _velocity_x The new velocity in the X direction.
+     */
     void setVelocityX(float _velocity_x) { velocity_x = _velocity_x; }
+
+    /**
+     * @brief Setter for the object's velocity in the Y direction.
+     * 
+     * @param _velocity_y The new velocity in the Y direction.
+     */
     void setVelocityY(float _velocity_y) { velocity_y = _velocity_y; }
 };
 
-// Clase derivada TextureObject
+
+/**
+ * @class TextureObject
+ * @brief A derived class from BaseObject that adds texture handling functionality to the object.
+ *        This class uses the SFML library to load and display textures for graphical representation.
+ */
 class TextureObject : public BaseObject {
 private:
-    sf::Texture texture;         // Textura para el objeto
-    sf::Sprite textureSprite;    // Sprite para dibujar el objeto
+    sf::Texture texture;         ///< Texture for the object (SFML Texture).
+    sf::Sprite textureSprite;    ///< Sprite to render the texture on screen (SFML Sprite).
 
 public:
-    // Constructor sin velocidad
+    /**
+     * @brief Constructor to initialize the texture object without velocity.
+     *        Inherits from BaseObject and initializes the texture object.
+     * 
+     * @param _name The name of the object.
+     * @param _width The width of the object.
+     * @param _height The height of the object.
+     * @param _x_position The X-coordinate position of the object.
+     * @param _y_position The Y-coordinate position of the object.
+     */
     TextureObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position)
         : BaseObject(_name, _width, _height, _x_position, _y_position) {}
 
-    // Constructor con velocidad
+    /**
+     * @brief Constructor to initialize the texture object with velocity.
+     *        Inherits from BaseObject and initializes the texture object with velocity.
+     * 
+     * @param _name The name of the object.
+     * @param _width The width of the object.
+     * @param _height The height of the object.
+     * @param _x_position The X-coordinate position of the object.
+     * @param _y_position The Y-coordinate position of the object.
+     * @param _velocity_x The velocity of the object in the X direction.
+     * @param _velocity_y The velocity of the object in the Y direction.
+     */
     TextureObject(const std::string& _name, uint16_t _width, uint16_t _height, uint16_t _x_position, uint16_t _y_position, float _velocity_x, float _velocity_y)
         : BaseObject(_name, _width, _height, _x_position, _y_position, _velocity_x, _velocity_y) {}
 
-    // Destructor
+    /**
+     * @brief Destructor for the TextureObject class.
+     *        Prints a message when destroying the object, useful for debugging.
+     */
     virtual ~TextureObject() {
         std::cout << "Destroying TextureObject: " << name << std::endl;
     }
 
-    // Función para cargar la textura
+    /**
+     * @brief Loads the texture from a file and sets up the texture sprite.
+     *        Adjusts the sprite's position and scale based on the object dimensions.
+     * 
+     * @param path The file path to the texture image.
+     * @return true if the texture was successfully loaded, false otherwise.
+     */
     bool loadTexture(const std::string& path) {
-        if (!texture.loadFromFile(path)) {
+        if (!texture.loadFromFile(path)) {   // Attempt to load the texture from file.
             std::cerr << "Error loading texture from file: " << path << std::endl;
-            return false;
+            return false; // Return false if texture load fails.
         }
-        textureSprite.setTexture(texture);
-        textureSprite.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));
+        textureSprite.setTexture(texture);  // Set the texture to the sprite.
+        textureSprite.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));  // Set sprite position.
         textureSprite.setScale(
-            static_cast<float>(width) / texture.getSize().x,
-            static_cast<float>(height) / texture.getSize().y
+            static_cast<float>(width) / texture.getSize().x,   // Scale sprite to fit object width.
+            static_cast<float>(height) / texture.getSize().y   // Scale sprite to fit object height.
         );
-        return true;
+        return true;   // Return true if texture loading and sprite setup are successful.
     }
 
+    /**
+     * @brief Getter for the texture.
+     * 
+     * @return A reference to the texture object.
+     */
     sf::Texture& getTexture() {
-        return texture;
+        return texture;  // Return the texture object.
     }
 
+    /**
+     * @brief Getter for the texture (const version).
+     * 
+     * @return A constant reference to the texture object.
+     */
     const sf::Texture& getTexture() const {
-        return texture;
+        return texture;  // Return the texture object as a constant reference.
     }
 
+    /**
+     * @brief Getter for the texture sprite.
+     * 
+     * @return A reference to the texture sprite.
+     */
     sf::Sprite& getTextureSprite() {
-        return textureSprite;
+        return textureSprite;  // Return the texture sprite object.
     }
 
+    /**
+     * @brief Getter for the texture sprite (const version).
+     * 
+     * @return A constant reference to the texture sprite.
+     */
     const sf::Sprite& getTextureSprite() const {
-        return textureSprite;
+        return textureSprite;  // Return the texture sprite object as a constant reference.
     }
 
-    // Función para actualizar la posición del objeto
+    /**
+     * @brief Updates the position of the sprite based on the object's position.
+     *        This ensures the sprite follows the object's position.
+     */
     void updatePosition() {
-        textureSprite.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));
+        textureSprite.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));  // Set the sprite's position.
     }
 
-    // Función para dibujar el objeto en la pantalla
+    /**
+     * @brief Draws the object (sprite) to the screen.
+     *        This method will render the sprite to the given render window.
+     * 
+     * @param window The SFML render window where the sprite will be drawn.
+     */
     void draw(sf::RenderWindow& window) {
-        window.draw(textureSprite);
+        window.draw(textureSprite);  // Draw the texture sprite onto the window.
     }
 };
 
 
+/**
+ * @class TextObject
+ * @brief Represents a text object for rendering text on a screen with potential child and parent relationships.
+ *        This class supports text alignment, color, font management, and hierarchical rendering.
+ *
+ * @param _name       The name of the object.
+ * @param _x_position X-coordinate of the object's position.
+ * @param _y_position Y-coordinate of the object's position.
+ * @param _color      The RGB color of the text (array of 3 uint16_t values).
+ * @param _text       The text string to display.
+ * @param _fontPath   Path to the font file.
+ * @param _text_size  The size of the text.
+ * @param _centerText Boolean flag to specify if the text should be center-aligned.
+ *
+ * @return None
+ */
 class TextObject : public BaseObject {
 private:
-    std::array<uint16_t, 3> color;   // RGB color
-    sf::Font font;                  // Font for the text
-    sf::Text textObj;               // SFML Text object
-    bool centerText;                // Flag to indicate if the text is center-aligned
+    std::array<uint16_t, 3> color;   // RGB color of the text
+    sf::Font font;                  // SFML Font for the text
+    sf::Text textObj;               // SFML Text object to hold and display the text
+    bool centerText;                // Flag indicating if the text should be center-aligned
     std::string fontPath;           // Path to the font file
-    std::vector<std::shared_ptr<TextObject>> children; // Child nodes
-    std::weak_ptr<TextObject> parent;
+    std::vector<std::shared_ptr<TextObject>> children; // List of child text objects
+    std::weak_ptr<TextObject> parent; // Weak pointer to the parent text object
 
 public:
-    // Constructor
+    /**
+     * @brief Constructor for initializing a TextObject with a specified position, color, text, font, and size.
+     * 
+     * @param _name       Name of the text object.
+     * @param _x_position X-coordinate of the text object's position.
+     * @param _y_position Y-coordinate of the text object's position.
+     * @param _color      The RGB color of the text.
+     * @param _text       The text string to display.
+     * @param _fontPath   Path to the font file.
+     * @param _text_size  Size of the text.
+     * @param _centerText Whether the text should be center-aligned.
+     * 
+     * @throw std::runtime_error If the font cannot be loaded from the given font path.
+     * @return None
+     */
     TextObject(const std::string& _name, uint16_t _x_position, uint16_t _y_position, 
                std::array<uint16_t, 3> _color, const std::string& _text, const std::string& _fontPath, 
                uint16_t _text_size, bool _centerText)
@@ -555,45 +874,73 @@ public:
         textObj.setPosition(static_cast<float>(_x_position), static_cast<float>(_y_position));
     }
 
-
-    // Destructor
+    /**
+     * @brief Destructor for the TextObject.
+     *
+     * Prints a message to the console when the object is destroyed.
+     * 
+     * @return None
+     */
     virtual ~TextObject() {
         std::cout << "Destroying TextObject: " << name << std::endl;
     }
 
-    // Método para establecer el padre
+    /**
+     * @brief Sets the parent of the TextObject.
+     * 
+     * @param _parent A shared pointer to the parent TextObject.
+     * @return None
+     */
     void setParent(const std::shared_ptr<TextObject>& _parent) {
         parent = _parent;
     }
 
-    // Método para obtener el padre
+    /**
+     * @brief Returns the parent of the TextObject.
+     * 
+     * @return A shared pointer to the parent TextObject, or an empty shared pointer if no parent exists.
+     */
     std::shared_ptr<TextObject> getParent() const {
-        return parent.lock(); // Convierte el weak_ptr en shared_ptr si es válido
+        return parent.lock(); // Converts the weak_ptr to shared_ptr if valid
     }
 
-
-    // Add a child node
+    /**
+     * @brief Adds a child TextObject to the current object.
+     * 
+     * @param child A shared pointer to the child TextObject.
+     * @return None
+     */
     void addChild(std::shared_ptr<TextObject> child) {
         children.push_back(child);
     }
 
-    // Get children
+    /**
+     * @brief Returns the list of child TextObjects.
+     * 
+     * @return A reference to a vector containing shared pointers to child TextObjects.
+     */
     const std::vector<std::shared_ptr<TextObject>>& getChildren() const {
         return children;
     }
 
-
-    // Draw the text object and its children recursively (ELIMINATE recursively OR ADD IT IN ANOTHER FUNCTION )
+    /**
+     * @brief Draws the text object on the window.
+     * 
+     * @param window The SFML render window to draw the text object on.
+     * 
+     * @return None
+     */
     void draw(sf::RenderWindow& window) {
         window.draw(textObj);
-        /*
-        for (const auto& child : children) {
-            child->draw(window);
-        }
-        */
     }
 
-    // Print hierarchy for debugging
+    /**
+     * @brief Prints the hierarchy of the TextObject and its children for debugging purposes.
+     * 
+     * @param level The current indentation level for printing.
+     * 
+     * @return None
+     */
     void printHierarchy(int level = 0) const {
         std::string indentation(level * 2, ' ');
         std::cout << indentation << "- " << name << std::endl;
@@ -602,12 +949,23 @@ public:
         }
     }
 
-    // Sincroniza las coordenadas con el objeto SFML
+    /**
+     * @brief Updates the position of the text based on the object's coordinates.
+     * 
+     * @return None
+     */
     void updateTextPosition() {
         textObj.setPosition(static_cast<float>(x_position), static_cast<float>(y_position));
     }
 
-    // Set font size for the text object and optionally its children
+    /**
+     * @brief Sets the font size of the text object and optionally applies it to all children.
+     * 
+     * @param newFontSize The new font size to set.
+     * @param applyToChildren Whether to apply the new font size to all child TextObjects.
+     * 
+     * @return None
+     */
     void setFontSize(uint16_t newFontSize, bool applyToChildren = false) {
         textObj.setCharacterSize(newFontSize);
         if (applyToChildren) {
@@ -617,165 +975,347 @@ public:
         }
     }
 
-    // Getters for required attributes
+    /**
+     * @brief Returns the color of the text.
+     * 
+     * @return A 3-element array representing the RGB color.
+     */
     std::array<uint16_t, 3> getColor() const {
         return color;
     }
 
+    /**
+     * @brief Returns the text string displayed by the object.
+     * 
+     * @return The text string.
+     */
     std::string getText() const {
         return textObj.getString();
     }
 
+    /**
+     * @brief Returns the path of the font file.
+     * 
+     * @return The font file path as a string.
+     */
     std::string getFontPath() const {
         return fontPath;
     }
 
+    /**
+     * @brief Returns the current size of the text.
+     * 
+     * @return The font size as an unsigned 16-bit integer.
+     */
     uint16_t getTextSize() const {
         return textObj.getCharacterSize();
     }
 
+    /**
+     * @brief Returns whether the text is centered.
+     * 
+     * @return True if the text is centered, false otherwise.
+     */
     bool isCentered() const {
         return centerText;
     }
 
+    /**
+     * @brief Checks if the text object is a leaf node (has no children).
+     * 
+     * @return True if the text object has no children, false otherwise.
+     */
     bool isLeaf() const {
-    return children.empty();
+        return children.empty();
     }
 
-    // Get the width of the text
+    /**
+     * @brief Returns the width of the text.
+     * 
+     * @return The width of the text as a float.
+     */
     float getTextWidth() const {
         return textObj.getLocalBounds().width;
     }
 
-    // Get the width of the text
+    /**
+     * @brief Returns the height of the text.
+     * 
+     * @return The height of the text as a float.
+     */
     float getTextHeight() const {
         return textObj.getLocalBounds().height;
     }
 
-
-    // Método para eliminar todos los hijos
+    /**
+     * @brief Removes all children from the current TextObject.
+     * 
+     * @return None
+     */
     void removeAllChildren() {
         for (auto& child : children) {
-            // Romper la relación del hijo con este nodo como su padre
+            // Break the parent-child relationship
             if (auto sharedChild = child->getParent()) {
                 if (sharedChild.get() == this) {
                     child->setParent(nullptr);
                 }
             }
         }
-        children.clear(); // Vaciar el vector de hijos
+        children.clear(); // Clear the children vector
     }
-
 };
 
 
-// Función recursiva para calcular la profundidad máxima del árbol
+
+/**
+ * @brief Recursively calculates the maximum depth of the tree.
+ * 
+ * This function traverses the tree starting from the given node, calculating 
+ * the depth of each branch. It finds the deepest branch by checking all 
+ * children nodes recursively. The maximum depth is the longest path from 
+ * the root node to any leaf node.
+ * 
+ * A leaf node is considered to have a depth of 1, and the depth increases 
+ * by 1 for each level deeper into the tree. The function returns the 
+ * maximum depth in the tree.
+ * 
+ * @param node A shared pointer to the TextObject node from which the depth 
+ *             calculation starts.
+ * @return The maximum depth of the tree. If the node is nullptr (empty tree), 
+ *         the function returns 0.
+ */
 int getMaxDepth(const std::shared_ptr<TextObject>& node) {
     if (!node) {
-        return 0; // Árbol vacío
+        return 0; // Tree is empty, depth is 0
     }
 
     int maxDepth = 0;
+    // Recursively calculate the depth for each child node
     for (const auto& child : node->getChildren()) {
         maxDepth = std::max(maxDepth, getMaxDepth(child));
     }
 
-    return maxDepth + 1; // 0 has not children (leaf node)/ 1 has at least one child
+    return maxDepth + 1; // Add 1 to the current node's depth
 }
 
+
+/**
+ * @brief Finds nested subtopics based on the provided indices.
+ * 
+ * This function traverses through the levels of topics and subtopics, starting
+ * from a general list of topics. It uses a vector of indices to navigate 
+ * through each level of the tree-like structure. The function checks if each 
+ * topic has subtopics, and if it does, it continues to the next level. If a 
+ * leaf node (a topic without subtopics) is encountered, the function returns 
+ * an empty vector. If the indices are valid and all levels have subtopics, 
+ * the function will return the list of subtopics at the deepest level.
+ * 
+ * @param generalTopics A vector containing the general topics at the first level.
+ * @param indices A vector of indices used to traverse through the levels of subtopics.
+ * 
+ * @return A vector of `LineTextParams` containing the subtopics at the deepest level
+ *         of the hierarchy. If any level doesn't have subtopics or the indices are 
+ *         invalid, the function returns an empty vector.
+ * 
+ * @throws std::out_of_range If an index is out of bounds at any level.
+ */
 std::vector<LineTextParams> findNestedSubtopics(
     const std::vector<LineTextParams>& generalTopics,
     const std::vector<int>& indices
 ) {
     const std::vector<LineTextParams>* currentLevel = &generalTopics;
 
+    // Traverse through each level of subtopics using the indices
     for (int index : indices) {
+        // Check if the index is valid for the current level
         if (index < 0 || index >= currentLevel->size()) {
-            throw std::out_of_range("Índice fuera de rango en generalTopics o subtopics.");
+            throw std::out_of_range("Index out of range in generalTopics or subtopics.");
         }
 
+        // Get the selected topic at the current index
         const LineTextParams& selectedTopic = (*currentLevel)[index];
+
+        // If no subtopics exist at this level, return an empty vector (leaf node)
         if (!selectedTopic.subtopics.has_value()) {
-            // Si no hay subtopics, retornamos un vector vacío
             std::cerr << "Leaf node found. No more submenus.\n";
-            return {};
+            return {};  // No more subtopics to explore
         }
 
-        // Moverse al siguiente nivel
+        // Move to the next level of subtopics
         currentLevel = &selectedTopic.subtopics.value();
     }
 
-    // Retornar el último nivel de subtopics como vector
+    // Return the subtopics at the deepest level
     return *currentLevel;
 }
 
 
+/**
+ * @brief Checks if a point is far enough from a list of objects.
+ * 
+ * This function checks whether a given point, specified by its coordinates
+ * (`x`, `y`), is at least a certain distance away from all objects in a list.
+ * It calculates the Euclidean distance between the point and each object, 
+ * and if the distance is smaller than the specified minimum distance (`minDistance`),
+ * it returns `false`, indicating that the point is too close to one of the objects.
+ * If the point is far enough from all objects, the function returns `true`.
+ * 
+ * @param objects A vector of pointers to `TextureObject` instances representing
+ *                the objects to check against.
+ * @param x The x-coordinate of the point to check.
+ * @param y The y-coordinate of the point to check.
+ * @param minDistance The minimum required distance between the point and each object.
+ * 
+ * @return `true` if the point is at least `minDistance` away from all objects, 
+ *         otherwise `false` if any object is too close.
+ */
 bool isFarEnough(const std::vector<TextureObject*>& objects, float x, float y, float minDistance) {
+    // Iterate over each object in the list
     for (const auto& obj : objects) {
+        // Calculate the difference in x and y coordinates between the point and the object
         float dx = obj->getXPosition() - x;
         float dy = obj->getYPosition() - y;
+
+        // Calculate the Euclidean distance between the point and the object
         if (std::sqrt(dx * dx + dy * dy) < minDistance) {
+            // Return false if the distance is smaller than the minimum required
             return false;
         }
     }
+
+    // Return true if the point is far enough from all objects
     return true;
 }
 
+
+/**
+ * @brief Creates a list of moving objects with random positions.
+ * 
+ * This function creates a specified number (`n`) of moving objects with random sizes 
+ * and positions within a given grid. It ensures that the objects are placed far enough 
+ * from each other to avoid overlap. The size of each object is chosen randomly within a 
+ * specified range, and the object positions are checked to ensure they do not violate 
+ * the minimum distance requirement from other objects.
+ * 
+ * @param n The number of moving objects to create. Must be between 1 and 10.
+ * @param grid A 2D grid represented as a vector of vectors of `Block` objects, used 
+ *             to define the area in which the objects can be placed.
+ * @param object The `StructTextureObject` containing the properties of the object to 
+ *               be created, such as its size, velocity, and texture path.
+ * 
+ * @return A vector of pointers to dynamically allocated `TextureObject` instances.
+ *         If the creation fails at any point, an empty vector is returned.
+ * 
+ * @throws std::runtime_error If the number of objects is greater than 10, or if the 
+ *         size of the object does not meet the minimum size requirements.
+ */
 std::vector<TextureObject*> createMovingObjects(int n, std::vector<std::vector<Block>> grid, StructTextureObject object) {
-    if (n <= 0) return {};
+    // Check if the number of objects is valid
+    if (n <= 0) return {};  // Return an empty vector if n is less than or equal to 0
 
     if (n > 10) {
         throw std::runtime_error("Max num of moving objects is 10. Got: " + std::to_string(n));
     }
 
+    // Ensure the object size meets the minimum size requirement
     if (MIN_SIZE * 2 > object.width) {
         throw std::runtime_error(
-        "The size of the square object must be at least double the minimum size. "
-        "Got: " + std::to_string(object.width) + ", required: " + std::to_string(MIN_SIZE * 2));
+            "The size of the square object must be at least double the minimum size. "
+            "Got: " + std::to_string(object.width) + ", required: " + std::to_string(MIN_SIZE * 2));
     }
 
-    std::srand(static_cast<unsigned>(std::time(nullptr)));
-    std::vector<TextureObject*> movingObjectPointer;
-    const float minDistance = object.width;
+    // Use current time as a seed for random number generation
+    auto now = std::chrono::high_resolution_clock::now();
+    auto seed = static_cast<unsigned>(now.time_since_epoch().count());
+    std::srand(seed);
 
+    std::vector<TextureObject*> movingObjectPointer;  // Vector to store pointers to moving objects
+    const float minDistance = object.width;  // Minimum distance between objects
+
+    // Loop to create the specified number of moving objects
     for (int i = 0; i < n; ++i) {
-        int size = MIN_SIZE + (std::rand() % (object.width - (MIN_SIZE - 1))); // Tamaño entre MIN_SIZE y object.width
+        // Randomly determine the size of the object within the specified range
+        int size = MIN_SIZE + (std::rand() % (object.width - (MIN_SIZE - 1)));  // Random size between MIN_SIZE and object.width
         float posX, posY;
         bool validPosition = false;
 
+        // Try to find a valid position for the object
         while (!validPosition) {
+            // Randomly select a position within the grid
             posX = grid[8][16].x + (std::rand() % (grid[100][60].x - grid[8][16].x + 1));
             posY = grid[8][16].y + (std::rand() % (grid[100][60].y - grid[8][16].y + 1));
 
+            // Check if the position is far enough from other objects
             if (isFarEnough(movingObjectPointer, posX, posY, minDistance)) {
                 validPosition = true;
             }
         }
 
+        // Create a new TextureObject with the selected size and position
         std::unique_ptr<TextureObject> texture = std::make_unique<TextureObject>(
             object.name, size, size, posX, posY, object.velocity_x, object.velocity_y);
 
+        // Attempt to load the texture for the object
         if (!texture->loadTexture(object.path)) {
+            // Clean up previously created objects if loading the texture fails
             for (auto obj : movingObjectPointer) {
                 delete obj;
             }
-            return {}; // Limpia y retorna vacío si falla
+            return {};  // Return an empty vector if texture loading fails
         }
 
+        // Add the created object to the list of moving objects
         movingObjectPointer.push_back(texture.release());
     }
+
+    // Return the list of created moving objects
     return movingObjectPointer;
 }
 
+
+/**
+ * @brief Draws a list of objects onto a render window.
+ * 
+ * This function iterates through a list of `TextureObject` pointers and draws each 
+ * valid object onto the provided `sf::RenderWindow`. If an object pointer is `nullptr`, 
+ * it skips that object to avoid any potential errors.
+ * 
+ * @param objects A vector of pointers to `TextureObject` instances, which represent 
+ *                the objects to be drawn on the window.
+ * @param window The `sf::RenderWindow` instance where the objects will be drawn.
+ * 
+ * @return void
+ */
 void drawObjects(const std::vector<TextureObject*>& objects, sf::RenderWindow& window) {
+    // Iterate through the list of objects
     for (auto* obj : objects) {
+        // Check if the object pointer is valid (non-null)
         if (obj) {
+            // Call the draw method of each valid object to render it to the window
             obj->draw(window);
         }
     }
 }
 
-// Function to handle the button
+
+/**
+ * @brief Handles the sound button interaction to toggle music on or off.
+ * 
+ * This function checks if the sound button is clicked. If the button is clicked and music 
+ * is currently playing, it pauses the music and changes the button's texture to the 
+ * "sound-off" icon. If the music is paused, it starts the music and changes the button's 
+ * texture to the "sound-on" icon. The function also uses atomic operations to handle 
+ * the `isMusicPlaying` state safely in a multi-threaded environment.
+ * 
+ * @param soundButton A reference to the `sf::Sprite` that represents the sound button.
+ * @param soundOnTexture A reference to the `sf::Texture` that represents the sound-on icon.
+ * @param soundOffTexture A reference to the `sf::Texture` that represents the sound-off icon.
+ * @param music A reference to the `sf::Music` object that controls the background music.
+ * @param isMusicPlaying An atomic boolean to track whether the music is currently playing.
+ * @param window A constant reference to the `sf::RenderWindow` where the button is located.
+ * 
+ * @return void
+ */
 void handleSoundButton(sf::Sprite& soundButton, 
                        sf::Texture& soundOnTexture, 
                        sf::Texture& soundOffTexture, 
@@ -783,20 +1323,45 @@ void handleSoundButton(sf::Sprite& soundButton,
                        std::atomic<bool>& isMusicPlaying, 
                        const sf::RenderWindow& window) 
 {
+    // Get the mouse position relative to the window
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
+    // Check if the mouse is over the button
     if (soundButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+        // Toggle music playback based on its current state
         if (isMusicPlaying.load()) {
-            music.pause();
-            soundButton.setTexture(soundOffTexture); // Switch to sound-off icon
-            isMusicPlaying.store(false);
+            music.pause();                         // Pause music
+            soundButton.setTexture(soundOffTexture); // Set sound-off icon
+            isMusicPlaying.store(false);            // Update state to not playing
         } else {
-            music.play();
-            soundButton.setTexture(soundOnTexture); // Switch to sound-on icon
-            isMusicPlaying.store(true);
+            music.play();                          // Play music
+            soundButton.setTexture(soundOnTexture); // Set sound-on icon
+            isMusicPlaying.store(true);             // Update state to playing
         }
     }
 }
 
+
+/**
+ * @brief Handles the interaction with the moving button to toggle object movement.
+ * 
+ * This function checks if the moving button is clicked. If the button is clicked and the 
+ * thread controller is paused, it clears the current moving objects, creates new ones 
+ * using the `createMovingObjects` function, and resumes the thread. If the thread is not paused, 
+ * it clears the current moving objects, sets the button to the "off" texture, and pauses the thread.
+ * This ensures that the objects' movement can be controlled by the button.
+ * 
+ * @param movingButton A reference to the `sf::Sprite` that represents the moving button.
+ * @param movingONTexture A reference to the `sf::Texture` representing the "moving-on" button texture.
+ * @param movingOffTexture A reference to the `sf::Texture` representing the "moving-off" button texture.
+ * @param window A constant reference to the `sf::RenderWindow` used to check the mouse position.
+ * @param threadController A reference to the `ThreadController` responsible for pausing and resuming the thread.
+ * @param movingObjectPointer A reference to the vector of `TextureObject*` containing the moving objects.
+ * @param grid A reference to the 2D grid used to place the moving objects.
+ * @param object A reference to the `StructTextureObject` containing the properties of the moving objects.
+ * 
+ * @return void
+ */
 void handleMovingButton(sf::Sprite& movingButton,
                         sf::Texture& movingONTexture,  
                         sf::Texture& movingOffTexture, 
@@ -806,305 +1371,495 @@ void handleMovingButton(sf::Sprite& movingButton,
                         std::vector<std::vector<Block>>& grid,           
                         StructTextureObject& object)                  
 {
+    // Get the mouse position relative to the window
     sf::Vector2i mousePos = sf::Mouse::getPosition(window);
 
+    // Check if the mouse is over the moving button
     if (movingButton.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos))) {
+        // If the thread is paused, resume and create new moving objects
         if (threadController.isPaused()) {
-            // Limpia el vector antes de asignar nuevos objetos
+            // Clear the current moving objects and free memory
             for (auto* obj : movingObjectPointer) {
-                delete obj; // Libera la memoria de cada puntero
+                delete obj; // Deallocate memory for each object
             }
-            movingObjectPointer.clear();
+            movingObjectPointer.clear(); // Clear the pointer vector
 
-            // Crea nuevos objetos y actualiza el vector
+            // Create new moving objects and update the vector
             movingObjectPointer = createMovingObjects(8, grid, object);
-            movingButton.setTexture(movingONTexture); 
-            threadController.resume(); // Reanudar el hilo si está pausado
+            movingButton.setTexture(movingONTexture); // Set the "on" texture for the button
+            threadController.resume(); // Resume the thread if it's paused
         } else {
-            // Limpia el vector para destruir los objetos actuales
+            // If the thread is running, stop the movement and clear objects
             for (auto* obj : movingObjectPointer) {
-                delete obj; // Libera la memoria de cada puntero
+                delete obj; // Deallocate memory for each object
             }
-            movingObjectPointer.clear();
+            movingObjectPointer.clear(); // Clear the pointer vector
 
-            movingButton.setTexture(movingOffTexture); 
-            threadController.pause(); // Pausar el hilo si está corriendo
+            movingButton.setTexture(movingOffTexture); // Set the "off" texture for the button
+            threadController.pause(); // Pause the thread if it's running
         }
     }
 }
 
 
-// Load music
-std::shared_ptr<sf::Music> loadAndPlayMusic() {
+
+/**
+ * @brief Loads and plays music from a file.
+ * 
+ * This function attempts to load music from a file located at the provided `music_path`. 
+ * If the music file is successfully loaded, it is played and set to loop. 
+ * If the loading fails, an error message is displayed and `nullptr` is returned to indicate failure.
+ * 
+ * @param music_path The relative path to the music file in AUDIOS_PATH.
+ * 
+ * @return A `std::shared_ptr<sf::Music>` pointing to the loaded and playing music, 
+ *         or `nullptr` if the loading failed.
+ */
+std::shared_ptr<sf::Music> loadAndPlayMusic(std::string music_path) {
+    // Create a shared pointer for the music object
     auto music = std::make_shared<sf::Music>();
-    if (!music->openFromFile(AUDIOS_PATH + MUSIC_FILE)) {
+
+    // Attempt to load the music file from the specified path
+    if (!music->openFromFile(AUDIOS_PATH + music_path)) {
+        // If loading fails, display an error message and return nullptr
         std::cerr << "Error loading music.\n";
-        return nullptr; // Return nullptr to indicate failure
+        return nullptr; // Indicate failure by returning nullptr
     }
+
+    // If loading is successful, play the music and set it to loop
     music->play();
     music->setLoop(true);
+
+    // Return the shared pointer to the music object
     return music;
 }
 
 
-int findNumberInArrays(const std::vector<int*>& vec, int number) {
+/**
+ * @brief Finds a number in a list of integer arrays.
+ * 
+ * This function iterates over a vector of integer pointers, where each pointer points to an array. 
+ * It searches for a specified `number` in each array, stopping when the number is found or the end of the array is reached (indicated by `-1`).
+ * If the number is found, the function returns the first element of the array where the number is located.
+ * If the number is not found in any array, the function returns `-1`.
+ * 
+ * @param vec The vector containing pointers to integer arrays.
+ * @param number The number to search for in the arrays.
+ * 
+ * @return The first element of the array where the number is found, or `-1` if the number is not found in any array.
+ */
+int findFirstArrayWithNumber(const std::vector<int*>& vec, int number) {
+    // Iterate through each array in the vector of arrays
     for (size_t i = 0; i < vec.size(); i++) {
-        int* array = vec[i];  // Obtener el arreglo
+        int* array = vec[i];  // Get the current array
 
-        // Buscar el número en el arreglo hasta encontrar el final (-1)
+        // Search for the number in the array, stopping when the end (-1) is reached
         for (size_t j = 0; array[j] != -1; j++) {
             if (array[j] == number) {
-                return array[0];  // Retornar el primer elemento del arreglo donde se encuentra el número
+                return array[0];  // Return the first element of the array where the number is found
             }
         }
     }
-    return -1;  // Retornar -1 si no se encuentra el número
+
+    // Return -1 if the number is not found in any array
+    return -1;
 }
 
 
-int findArrayRelation(const std::vector<int*>& vec, int number) { 
-    for (size_t i = 0; i < vec.size(); i++) {
-        int* array = vec[i];  // Obtener el arreglo
 
-        // Buscar el número en el arreglo hasta encontrar el final (-1)
+/**
+ * @brief Determines the relative position of an array containing a specific number in a vector of arrays.
+ * 
+ * This function searches through a vector of integer arrays for a given number. 
+ * Upon finding the number, it checks if the array has a preceding (up) or succeeding (down) array 
+ * in the vector. The function returns an `Arrow` value that indicates the relation between the found array 
+ * and its surrounding arrays:
+ * - `Arrow::Up` if there is a preceding array.
+ * - `Arrow::Down` if there is a succeeding array.
+ * - `Arrow::Both` if both preceding and succeeding arrays exist.
+ * - `Arrow::Error` if the number is not found in any array.
+ * 
+ * @param vec The vector of integer arrays to search through.
+ * @param number The number to find in the arrays.
+ * @return Arrow Enumeration value indicating the relation (Up, Down, Both, or Error).
+ */
+Arrow findArraySurroundingRelation(const std::vector<int*>& vec, int number) {
+    // Iterate through each array in the vector
+    for (size_t i = 0; i < vec.size(); i++) {
+        int* array = vec[i];  // Get the current array
+
+        // Search for the number in the array, stopping at the end marker (-1)
         for (size_t j = 0; array[j] != -1; j++) {
             if (array[j] == number) {
-                // Verificar si tiene arreglo anterior y posterior
-                bool hasPrevious = (i > 0);  // Tiene arreglo anterior si i > 0
-                bool hasNext = (i < vec.size() - 1);  // Tiene arreglo posterior si i < vec.size() - 1
+                // Check if the current array has previous or next arrays in the vector
+                bool hasPrevious = (i > 0);  // There is a previous array if i > 0
+                bool hasNext = (i < vec.size() - 1);  // There is a next array if i < vec.size() - 1
 
-                // Retornar el valor correspondiente según la existencia de arreglos anteriores y posteriores
+                // Return the appropriate Arrow value based on the surrounding arrays
                 if (hasPrevious && hasNext) {
-                    return 2;  // Tiene tanto anterior como posterior
+                    return Arrow::Both;  // Both previous and next arrays exist
                 } else if (hasPrevious) {
-                    return 0;  // Tiene solo arreglo anterior
+                    return Arrow::Up;  // Only a previous array exists
                 } else if (hasNext) {
-                    return 1;  // Tiene solo arreglo posterior
+                    return Arrow::Down;  // Only a next array exists
                 }
             }
         }
     }
-    return -1;  // Retornar -1 si no se encuentra el número
+
+    return Arrow::Error;  // Return Error if the number is not found in any array
 }
 
-void drawArrowsBasedOnRelation(uint8_t relationResult, sf::RenderWindow& window, std::unique_ptr<TextureObject>& upArrow, std::unique_ptr<TextureObject>& downArrow) {
-    // Dibuja las flechas basadas en el resultado de la relación
-    if (relationResult == 0) {
-        upArrow->draw(window);  // Solo la flecha hacia arriba
-    } else if (relationResult == 1) {
-        downArrow->draw(window);  // Solo la flecha hacia abajo
-    } else if (relationResult == 2) {
-        downArrow->draw(window);  // Ambas flechas
+
+/**
+ * @brief Draws arrows on the screen based on the relation result.
+ * 
+ * This function takes the relation result returned by `findArraySurroundingRelation` and draws arrows accordingly. 
+ * It uses the `Arrow` enumeration to determine which arrows to display:
+ * - `Arrow::Up`: Draws the upward arrow.
+ * - `Arrow::Down`: Draws the downward arrow.
+ * - `Arrow::Both`: Draws both the upward and downward arrows.
+ * - `Arrow::Error`: Logs an error message if the relation result is invalid.
+ * 
+ * @param relationResult The result of the relation check (from `findArraySurroundingRelation`).
+ * @param window The `sf::RenderWindow` object used for drawing the arrows.
+ * @param upArrow A unique pointer to the texture object for the up arrow.
+ * @param downArrow A unique pointer to the texture object for the down arrow.
+ */
+void drawArrowsBasedOnRelation(Arrow relationResult, sf::RenderWindow& window, std::unique_ptr<TextureObject>& upArrow, std::unique_ptr<TextureObject>& downArrow) {
+    // Draw arrows based on the result of the relation
+    if (relationResult == Arrow::Up) {
+        upArrow->draw(window);  // Only draw the up arrow
+    } else if (relationResult == Arrow::Down) {
+        downArrow->draw(window);  // Only draw the down arrow
+    } else if (relationResult == Arrow::Both) {
+        // Draw both the up and down arrows
+        downArrow->draw(window);
         upArrow->draw(window);
+    } else if (relationResult == Arrow::Error) {
+        // Log an error if the relation result is invalid
+        std::cerr << "Error: Invalid relationResult value. findArraySurroundingRelation() returned error. Value: " 
+                  << static_cast<int>(relationResult) << std::endl;
     }
 }
 
 
-
+/**
+ * @brief Creates a dynamic array from a vector of indices.
+ * 
+ * This function takes a `std::vector<int>` of indices and creates a dynamic array of integers to hold the same values. 
+ * The size of the dynamic array matches the size of the input vector, and the values from the vector are copied into the array.
+ * 
+ * @param indices The vector of integers that will be copied into the dynamic array.
+ * @return A pointer to the dynamically allocated array of integers, or nullptr if allocation fails.
+ */
 int* createIndexArray(const std::vector<int>& indices) {
-    int* indexArray = new int[indices.size()];  // Crear un arreglo dinámico
-    std::copy(indices.begin(), indices.end(), indexArray);  // Copiar los índices en el arreglo
+    // Create a dynamic array to store the indices
+    int* indexArray = new int[indices.size()];  // Dynamically allocate memory for the array
+    
+    // Copy the values from the vector into the dynamic array
+    std::copy(indices.begin(), indices.end(), indexArray);  // Copy elements from the vector to the array
+    
+    // Return the pointer to the dynamic array
     return indexArray;
 }
 
-std::vector<int*> predictOverflow(
+
+/**
+ * @brief Predicts overflow of text objects based on screen size and layout.
+ * 
+ * This function calculates whether the text objects exceed the available screen space (taking margins into account). 
+ * If the next line of text exceeds the screen's bottom margin, a new array of indices is created and stored in the result vector.
+ * It also handles cases where the remaining elements fit within the screen.
+ * 
+ * @param rootNode The root text object from which child objects are processed.
+ * @param screen The screen parameters, including height and margin values.
+ * @param window The render window used to draw and calculate text layout.
+ * @return A vector of dynamically allocated arrays containing indices of text objects in different screen segments.
+ */
+std::vector<int*> predictTextOverflow(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window
 ) {
-    const auto& children = rootNode->getChildren();
-    std::vector<int*> vec;  // Vector para almacenar los arreglos de índices
-    std::vector<int> currentIndices;  // Lista temporal de índices antes del desbordamiento
-    int next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Inicializar posición de la siguiente línea
+    const auto& children = rootNode->getChildren();  // Get the child text objects of the root node
+    std::vector<int*> overflowIndices;  // Vector to store arrays of indices for overflow segments
+    std::vector<int> currentIndices;  // Temporary list of indices before overflow occurs
+    int next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Initialize the position for the next line
 
+    // Loop through all child nodes to check if they cause overflow
     for (size_t i = 0; i < children.size(); i++) {
-        // Verificar si la posición del próximo nodo excede el margen inferior
+        // Check if the next line exceeds the available screen space
         if (next_line > screen.height - screen.bottomMargin) {
-            currentIndices.push_back(-1);  // sentinel
-            // Guardar el arreglo de índices hasta donde ocurrió el primer desbordamiento
-            int* indexArray = createIndexArray(currentIndices);
-            vec.push_back(indexArray);
+            currentIndices.push_back(-1);  // Sentinel value to mark the overflow point
 
-            // Reiniciar la lista de índices y la posición de la siguiente línea
+            // Save the array of indices up until the first overflow
+            int* indexArray = createIndexArray(currentIndices);
+            overflowIndices.push_back(indexArray);
+
+            // Reset the list of indices and position for the next line
             currentIndices.clear();
-            next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Reiniciar posición de la siguiente línea
+            next_line = LINE_SPACING * 2 + screen.topMargin + 50;  // Reset the next line position
         }
 
-        // Agregar el índice del nodo actual
+        // Add the current node's index to the list
         currentIndices.push_back(i);
 
-        // Actualizar la posición de la siguiente línea en función de la altura del texto
+        // Update the next line position based on the height of the current text node
         next_line += children[i]->getTextHeight() + LINE_SPACING;
     }
 
-    // Verificar si hay elementos no procesados (última sección sin desbordamiento)
+    // Handle any remaining elements that didn't cause overflow (final segment without overflow)
     if (!currentIndices.empty()) {
         int* indexArray = createIndexArray(currentIndices);
-        vec.push_back(indexArray);
+        overflowIndices.push_back(indexArray);
     }
 
-    return vec;  // Retornar el vector de arreglos de índices
+    // Return the vector of arrays containing indices of text objects
+    return overflowIndices;
 }
 
 
-//drawMenuFromRoot
-// Función para dibujar los nodos existentes, comenzando desde un nodo raíz
+/**
+ * @brief Draws the nodes starting from the root node, handling overflow and screen layout.
+ * 
+ * This function iterates through the root node and its children, positioning them on the screen. 
+ * It starts by drawing the root node, then draws each child node below it, taking into account 
+ * the screen's height and margin. If the screen's space is insufficient (overflow), the drawing stops.
+ * 
+ * @param rootNode A shared pointer to the root node of the text object tree.
+ * @param screen The screen parameters, including height and margins.
+ * @param window The render window used to draw the nodes.
+ * @param overflow The index to start drawing children from, used for handling overflow.
+ */
 void drawMenuFromRoot(
     const std::shared_ptr<TextObject>& rootNode,
     const ScreenParams& screen,
     sf::RenderWindow& window,
     int overflow
 ) {
+    // Check if the root node is null
     if (!rootNode) {
         std::cerr << "Error: Root node is null." << std::endl;
-        return;
+        return;  // Exit if the root node is invalid
     }
 
-    uint16_t next_line = screen.topMargin + 50; // Comenzar desde el margen superior
+    uint16_t next_line = screen.topMargin + 50; // Start drawing from the top margin
 
-    // Dibujar el nodo raíz centrado
-    uint16_t root_x_position = general4BlocksX.blockX2; // Ajustar para centrar en la pantalla
-    rootNode->setXPosition(root_x_position);  // Ajustar posición en X
-    rootNode->setYPosition(next_line);       // Ajustar posición en Y
-    rootNode->updateTextPosition();
-    rootNode->draw(window); // Dibujar el nodo raíz
+    // Draw the root node centered on the screen
+    uint16_t root_x_position = general4BlocksX.blockX2; // Adjust to center on screen
+    rootNode->setXPosition(root_x_position);  // Set the X position of the root node
+    rootNode->setYPosition(next_line);       // Set the Y position of the root node
+    rootNode->updateTextPosition();          // Update the text position for correct rendering
+    rootNode->draw(window);                  // Draw the root node
 
-    next_line += LINE_SPACING * 2; // Espacio adicional debajo del nodo raíz
+    next_line += LINE_SPACING * 2; // Add space below the root node for children
 
-    uint16_t child_x_position = general4BlocksX.blockX2;
-    const auto& children = rootNode->getChildren();
+    uint16_t child_x_position = general4BlocksX.blockX2;  // Set the X position for child nodes
+    const auto& children = rootNode->getChildren(); // Get the list of child nodes
 
+    // Iterate through the child nodes, starting from the overflow index
     for (size_t i = overflow; i < children.size(); ++i) {
 
+        // Check if the next line exceeds the screen height minus the bottom margin
         if (next_line > screen.height - screen.bottomMargin) {
-            break; 
+            break; // Exit the loop if we reach the bottom of the screen
         }
 
-        // Dibujar el hijo en la nueva posición
-        children[i]->setYPosition(next_line);
-        children[i]->setXPosition(child_x_position);
-        children[i]->updateTextPosition();
-        children[i]->draw(window);
+        // Draw the current child node at the new position
+        children[i]->setYPosition(next_line);      // Set the Y position for the child node
+        children[i]->setXPosition(child_x_position); // Set the X position for the child node
+        children[i]->updateTextPosition();         // Update the text position for correct rendering
+        children[i]->draw(window);                 // Draw the child node
 
-        next_line += children[i]->getTextHeight() + LINE_SPACING; // Avanzar a la siguiente línea
-
-
+        // Update the position for the next line
+        next_line += children[i]->getTextHeight() + LINE_SPACING;
     }
 }
 
 
-
+/**
+ * @brief Populates the root node with its subtopics.
+ * 
+ * This function adds a list of subtopics to the root node by associating each subtopic as a child of the root node. 
+ * It also sets the root node as the parent of each subtopic, establishing the parent-child relationship.
+ * 
+ * @param root A shared pointer to the root node, which will be populated with subtopics.
+ * @param subTopics A vector of shared pointers to subtopics to be added to the root node.
+ */
 void populateRootWithSubtopics(
     const std::shared_ptr<TextObject>& root,
-    std::vector<std::shared_ptr<TextObject>> subTopics)
+    std::vector<std::shared_ptr<TextObject>> subTopics
+)
 {
+    // Iterate through the list of subtopics
     for (const auto& child : subTopics) {
-        root->addChild(child);
-        child->setParent(root);
+        root->addChild(child);  // Add the subtopic as a child to the root node
+        child->setParent(root); // Set the root node as the parent of the subtopic
     }
 }
 
-std::vector<std::shared_ptr<TextObject>> createTextObjects(const std::vector<LineTextParams>& params) {
-    std::vector<std::shared_ptr<TextObject>> textObjects;
 
-    for (const auto& param : params) {
+/**
+ * @brief Creates a list of `TextObject` instances based on the provided topic data.
+ * 
+ * This function takes a vector of `LineTextParams` (referred to as `topics`) and creates a corresponding 
+ * list of `TextObject` instances. Each `TextObject` is initialized using the properties 
+ * from the `LineTextParams` and added to the vector to be returned.
+ * 
+ * @param topics A vector of `LineTextParams` structures, each containing parameters 
+ *               for creating a `TextObject`.
+ * 
+ * @return A vector of shared pointers to the created `TextObject` instances.
+ */
+std::vector<std::shared_ptr<TextObject>> createTextObjects(const std::vector<LineTextParams>& topics) {
+    std::vector<std::shared_ptr<TextObject>> textObjects;  // Vector to store the created text objects
+
+    // Iterate over each set of parameters in the input vector
+    for (const auto& topic : topics) {
+        // Create a new TextObject with the parameters from the current element
         auto textObject = std::make_shared<TextObject>(
-            param.name, 
-            param.x_position, 
-            param.y_position, 
-            param.color, 
-            param.text, 
-            param.fontPath, 
-            param.fontSize, 
-            param.centered
+            topic.name,         // Set the name of the text object
+            topic.x_position,   // Set the X position
+            topic.y_position,   // Set the Y position
+            topic.color,        // Set the color
+            topic.text,         // Set the text content
+            topic.fontPath,     // Set the font path
+            topic.fontSize,     // Set the font size
+            topic.centered      // Set the centered alignment flag
         );
+
+        // Add the newly created TextObject to the vector
         textObjects.push_back(textObject);
     }
+
+    // Return the vector containing all created TextObjects
     return textObjects;
 }
 
-
-void createTree(const std::shared_ptr<TextObject>& root, 
-                const std::vector<LineTextParams>& nodes, 
-                int maxDepth, 
-                int currentDepth = 1) {
+/**
+ * @brief Recursively creates a tree structure of `TextObject` nodes from provided text parameters.
+ * 
+ * This function builds a hierarchical tree of `TextObject` nodes starting from a root node, with each node
+ * potentially having child nodes (subtopics). It stops the recursion either when the maximum depth is reached
+ * or when there are no more subtopics to process.
+ * 
+ * @param root A shared pointer to the root `TextObject`, which will act as the starting point of the tree.
+ * @param nodes A vector of `LineTextParams`, each representing the parameters for creating a `TextObject`.
+ * @param maxDepth The maximum depth of the tree. The function will stop recursively creating nodes if this depth is reached.
+ * @param currentDepth The current depth of the tree during recursion. Defaults to 1.
+ */
+void createTree(
+    const std::shared_ptr<TextObject>& root,                // Root node to start creating the tree
+    const std::vector<LineTextParams>& nodes,               // List of nodes (with parameters) to create from
+    int maxDepth,                                          // Maximum depth for the recursion
+    int currentDepth = 1                                    // Current depth of the recursion (default to 1)
+) {
+    // Base case: If the root is null or the maximum depth is reached, stop the recursion.
     if (!root || currentDepth > maxDepth) {
-        return; // Base case: If root is null or max depth is reached, do nothing.
+        return;
     }
 
-    // Step 1: Create child nodes from the current level of LineTextParams.
-    auto subTopics = createTextObjects(nodes);
+    // Step 1: Create child nodes from the current level of LineTextParams (nodes).
+    auto subTopics = createTextObjects(nodes);  // Create a vector of TextObjects from the node parameters.
     
-    // Step 2: Populate the root node with these children.
-    populateRootWithSubtopics(root, subTopics);
+    // Step 2: Populate the root node with these created children (subtopics).
+    populateRootWithSubtopics(root, subTopics);  // Add the child nodes (subTopics) to the root node.
 
-    // Step 3: Recursively process each node's subtopics, if present and within depth.
+    // Step 3: Recursively process each node's subtopics if they exist and the maximum depth is not exceeded.
     for (size_t i = 0; i < nodes.size(); ++i) {
         const auto& node = nodes[i];
+        
+        // Check if the current node has subtopics (children). If so, process them recursively.
         if (node.subtopics.has_value()) {
-            // If the node has subtopics, recursively create a tree for them.
+            // Recursively create a tree of subtopics for the current node.
             createTree(subTopics[i], node.subtopics.value(), maxDepth, currentDepth + 1);
         }
     }
 }
 
-// Función para detectar si dos objetos están colisionando
+/**
+ * @brief Determines if two `TextureObject` instances are colliding based on their positions and dimensions.
+ * 
+ * This function checks whether the bounding boxes of two objects overlap, indicating a collision.
+ * The overlap detection can be fine-tuned using the `OVERLAP_PERCENTAGE` factor, which adjusts
+ * the effective size of the bounding boxes considered during the collision check.
+ * 
+ * @param obj1 The first `TextureObject` to check for collision.
+ * @param obj2 The second `TextureObject` to check for collision.
+ * @return `true` if the objects are colliding, `false` otherwise.
+ */
 bool isColliding(const TextureObject& obj1, const TextureObject& obj2) {
-    // Comprobar si las cajas de los objetos se solapan
-    return !(obj1.getXPosition() + obj1.getWidth()*OVERLAP_PERCENTAGE < obj2.getXPosition() || 
-             obj1.getXPosition() > obj2.getXPosition() + obj2.getWidth()*OVERLAP_PERCENTAGE || 
-             obj1.getYPosition() + obj1.getHeight()*OVERLAP_PERCENTAGE < obj2.getYPosition() || 
-             obj1.getYPosition() > obj2.getYPosition() + obj2.getHeight()*OVERLAP_PERCENTAGE);
+    // Check if the bounding boxes of obj1 and obj2 overlap.
+    // If any of these conditions are true, the objects are NOT colliding:
+    // 1. The right side of obj1 is to the left of the left side of obj2.
+    // 2. The left side of obj1 is to the right of the right side of obj2.
+    // 3. The bottom side of obj1 is above the top side of obj2.
+    // 4. The top side of obj1 is below the bottom side of obj2.
+    return !(obj1.getXPosition() + obj1.getWidth() * OVERLAP_PERCENTAGE < obj2.getXPosition() || 
+             obj1.getXPosition() > obj2.getXPosition() + obj2.getWidth() * OVERLAP_PERCENTAGE || 
+             obj1.getYPosition() + obj1.getHeight() * OVERLAP_PERCENTAGE < obj2.getYPosition() || 
+             obj1.getYPosition() > obj2.getYPosition() + obj2.getHeight() * OVERLAP_PERCENTAGE);
 }
 
 
+/**
+ * @brief Moves multiple `TextureObject` instances within a window, managing velocity, boundary collisions, and inter-object collisions.
+ * 
+ * This function operates in a loop to continuously update the positions of objects, check for collisions
+ * with the window boundaries and other objects, and adjust their velocities accordingly. It supports pause functionality
+ * through an atomic flag and signals when a redraw is needed.
+ * 
+ * @param objects A vector of pointers to `TextureObject` instances to be moved.
+ * @param window The SFML render window representing the screen boundaries.
+ * @param needsRedraw An atomic flag to signal that the objects need to be redrawn.
+ * @param isPaused An atomic flag indicating whether the movement is paused.
+ */
 void moveObjects(std::vector<TextureObject*>& objects, 
                  const sf::RenderWindow& window, 
                  std::atomic<bool>& needsRedraw, 
-                 std::atomic<bool>& isPaused) {  // Flag de pausa
+                 std::atomic<bool>& isPaused) {
     try {
         while (!isPaused.load() && window.isOpen()) {
+            // Pause handling: wait if the movement is paused
             if (isPaused.load()) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Espera mientras esté pausado
-                continue; // Salta al siguiente ciclo si está pausado
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue; // Skip to the next iteration
             }
 
-            // Realizar el movimiento de los objetos sin tocar la ventana
+            // Step 1: Update positions and handle boundary collisions
             for (size_t i = 0; i < objects.size(); ++i) {
                 auto* obj = objects[i];
 
-                // Obtener las velocidades en X e Y directamente del objeto
+                // Retrieve current velocity and position
                 float velocity_x = obj->getVelocityX();
                 float velocity_y = obj->getVelocityY();
-
-                // Obtener la posición actual del objeto
                 float posX = obj->getXPosition();
                 float posY = obj->getYPosition();
 
-                // Aplicar las velocidades para mover el objeto
-                posX += velocity_x;  // Movimiento en X
-                posY += velocity_y;  // Movimiento en Y
+                // Apply velocities to calculate the new position
+                posX += velocity_x;
+                posY += velocity_y;
 
-                // Verificar colisiones con los límites de la ventana
+                // Check for collisions with window boundaries
                 if (posX <= EXTRA_MARGING || posX + obj->getWidth() >= window.getSize().x - EXTRA_MARGING) {
-                    obj->setVelocityX(-velocity_x); // Invertir velocidad en X
+                    obj->setVelocityX(-velocity_x); // Reverse X velocity
                 }
                 if (posY <= EXTRA_MARGING || posY + obj->getHeight() >= window.getSize().y - EXTRA_MARGING) {
-                    obj->setVelocityY(-velocity_y); // Invertir velocidad en Y
+                    obj->setVelocityY(-velocity_y); // Reverse Y velocity
                 }
 
-                // Actualizar la posición del objeto
+                // Update the object's position
                 obj->setXPosition(posX);
                 obj->setYPosition(posY);
-                obj->updatePosition(); // Actualiza la posición en el sprite
+                obj->updatePosition(); // Synchronize the position with the sprite
 
-                // Verificar colisiones con otros objetos
+                // Step 2: Check for collisions with other objects
                 for (size_t j = i + 1; j < objects.size(); ++j) {
                     auto* otherObj = objects[j];
 
-                    // Comprobar si hay colisión entre obj y otherObj
                     if (isColliding(*obj, *otherObj)) {
-                        // Invertir las velocidades en X y Y de ambos objetos en caso de colisión
+                        // Reverse velocities for both objects upon collision
                         obj->setVelocityX(-velocity_x);
                         obj->setVelocityY(-velocity_y);
                         otherObj->setVelocityX(-otherObj->getVelocityX());
@@ -1113,14 +1868,18 @@ void moveObjects(std::vector<TextureObject*>& objects,
                 }
             }
 
-            // Indicar que se necesita redibujar la ventana
+            // Step 3: Indicate that the objects need to be redrawn
             needsRedraw.store(true);
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Pausa controlada para evitar bloqueo
+
+            // Pause to control the movement loop
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     } catch (const std::exception& e) {
-        std::cerr << "Error en el hilo de movimiento: " << e.what() << std::endl;
+        // Log any exceptions that occur in the movement thread
+        std::cerr << "Error in the movement thread: " << e.what() << std::endl;
     }
 }
+
 
 
 uint16_t initAndStartMainWindowLoop() {
@@ -1165,7 +1924,7 @@ uint16_t initAndStartMainWindowLoop() {
     createTree(mainMenu, generalTopics, 1);
 
     std::vector<int> indices;
-    std::shared_ptr<sf::Music> music = loadAndPlayMusic();
+    std::shared_ptr<sf::Music> music = loadAndPlayMusic(MUSIC_FILE);
     std::atomic<bool> isMusicPlaying = true;
 
     auto selectedMenu = mainMenu;
@@ -1176,7 +1935,7 @@ uint16_t initAndStartMainWindowLoop() {
     Stack last_types;
 
 
-    std::vector<int*> overflow_list = predictOverflow(selectedMenu, generalScreen, window);
+    std::vector<int*> overflow_list = predictTextOverflow(selectedMenu, generalScreen, window);
 
     std::atomic<bool> needsRedraw(true);
 
@@ -1225,7 +1984,7 @@ uint16_t initAndStartMainWindowLoop() {
                             last_types.push(types); // save last position in a stack to come back later
                             types = 0; // Bringing back user to first element of the new deployed list
                             selectedMenuChildren[types]->setFontSize(BIG_FONT);
-                            overflow_list = predictOverflow(selectedMenu, generalScreen, window);
+                            overflow_list = predictTextOverflow(selectedMenu, generalScreen, window);
                         } else {
                             indices.pop_back();
                         }
@@ -1236,7 +1995,7 @@ uint16_t initAndStartMainWindowLoop() {
                         indices.pop_back();
                         types = last_types.pop(); // Bringing back user to the last position
                         selectedMenuChildren[types]->setFontSize(BIG_FONT);
-                        overflow_list = predictOverflow(selectedMenu, generalScreen, window);
+                        overflow_list = predictTextOverflow(selectedMenu, generalScreen, window);
                     }
                     break;
 
@@ -1262,8 +2021,8 @@ uint16_t initAndStartMainWindowLoop() {
             }
             soundON->draw(window);
             movingON->draw(window);
-            drawMenuFromRoot(selectedMenu, generalScreen, window, findNumberInArrays(overflow_list, types));
-            uint8_t temp = findArrayRelation(overflow_list, types);
+            drawMenuFromRoot(selectedMenu, generalScreen, window, findFirstArrayWithNumber(overflow_list, types));
+            Arrow temp = findArraySurroundingRelation(overflow_list, types);
             drawArrowsBasedOnRelation(temp, window, upArrow, downArrow);
             window.display();
             needsRedraw = false;
